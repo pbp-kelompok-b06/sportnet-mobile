@@ -49,7 +49,7 @@ Dengan kemudahan akses dan interaksi yang ditawarkan, SportNet hadir sebagai sol
 3. **User Registration** [Jessica Tandra]
    - Authentication user account dari Django.
    - Registrasi user profile sesuai rolenya
-4. **Dashboard Event** [Anya Aleena Wardhany]
+4. **Event** [Anya Aleena Wardhany]
    - Menampilkan suatu model Event dengan attributes nama kegiatan, date, time, location, address, attendees, capacity, price, thumbnail, kategori activity, kategori sport.
    - Create Event baru.
    - User yang login dapat join Event, lalu jumlah attendees dari event tersebut akan bertambah.
@@ -97,6 +97,7 @@ Dengan kemudahan akses dan interaksi yang ditawarkan, SportNet hadir sebagai sol
 - Delete event milik sendiri.
 
 ## 🌐 Alur pengintegrasian data di aplikasi dengan aplikasi web (PWS) 🌐
+Alur pengintegrasian data antara aplikasi dengan aplikasi web (PWS) dilakukan melalui pemanfaatan endpoint pada sistem web yang menerima request body dan mengembalikan response dalam format JSON. Sistem web juga menerapkan mekanisme CORS, manajemen session, serta cookies sehingga aplikasi mobile dapat berkomunikasi secara aman dan mendukung proses autentikasi dari sisi aplikasi eksternal. Aplikasi mobile kemudian mengirim asynchronous request ke sistem web dan menampilkan hasilnya, sekaligus menyimpan informasi autentikasi menggunakan CookieRequest agar user tetap terautentikasi pada halaman yang memerlukannya. Selain itu, Flutter melakukan pemodelan berkala terhadap request dan response JSON yang diterima, sehingga integritas, konsistensi, dan sinkronisasi data antara aplikasi dan PWS tetap terjaga.
 
 ## 🔗 Tautan APK 🔗
 Link APK: 
