@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:intl/intl.dart';
 import '../models/models.dart';
-import 'notif_page.dart'; // Pastikan nama file import sesuai dengan file notifications Anda
+import 'notif_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,12 +15,11 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  // Daftar halaman untuk setiap Tab
   final List<Widget> _pages = [
-    const HomeContent(),         // Index 0: Halaman Home
-    const PlaceholderWidget(title: 'Bookmarks'), // Index 1: Bookmark
-    const NotificationsPage(),   // Index 2: Halaman Notifikasi (Diambil dari file terpisah)
-    const PlaceholderWidget(title: 'Profile'),   // Index 3: Profil
+    const HomeContent(),
+    const PlaceholderWidget(title: 'Bookmarks'),
+    const NotificationsPage(),
+    const PlaceholderWidget(title: 'Profile'),
   ];
 
   void _onItemTapped(int index) {
@@ -28,13 +30,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryOrange = Color(0xFFF0544F); 
+    const Color primaryOrange = Color(0xFFF0544F);
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // Body akan berubah sesuai index yang dipilih di BottomNav
       body: _pages[_selectedIndex],
-      
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -73,12 +73,82 @@ class _HomePageState extends State<HomePage> {
 }
 
 // --- KONTEN HALAMAN HOME ---
-class HomeContent extends StatelessWidget {
+class HomeContent extends StatefulWidget {
   const HomeContent({super.key});
 
   @override
+  State<HomeContent> createState() => _HomeContentState();
+}
+
+class _HomeContentState extends State<HomeContent> {
+  // Variabel state
+  List<Event> _events = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Menggunakan addPostFrameCallback untuk memastikan context siap sebelum memanggil Provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchEvents();
+    });
+  }
+
+  Future<void> _fetchEvents() async {
+    try {
+      // Mengambil instance CookieRequest dari Provider
+      final request = context.read<CookieRequest>();
+      
+      // PERBAIKAN: request.get() mengembalikan dynamic (JSON), bukan http.Response
+      final response = await request.get('https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/');
+
+      List<dynamic> data = [];
+
+      // Logika untuk menangani berbagai kemungkinan format JSON
+      if (response is List) {
+        // Jika API langsung mengembalikan List: [{...}, {...}]
+        data = response;
+      } else if (response is Map && response.containsKey('events')) {
+        // Jika API mengembalikan Object dengan key 'events': {"events": [...]}
+        data = response['events'];
+      } else if (response is Map) {
+         // Fallback jika API mengembalikan Map tapi bukan struktur diatas, mungkin perlu disesuaikan
+         // Namun biasanya endpoint /json/ django mengembalikan List.
+         // Kita coba anggap ini error format jika tidak sesuai
+         // Atau jika ini adalah endpoint yang mengembalikan list of objects (Django serialize),
+         // response akan terbaca sebagai List, jadi blok ini mungkin jarang tersentuh
+         throw Exception("Format data tidak dikenali: $response");
+      }
+
+      // Konversi JSON ke List<Event>
+      List<Event> events = [];
+      for (var d in data) {
+        if (d != null) {
+          events.add(Event.fromJson(d));
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _events = events;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching events: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const Color primaryOrange = Color(0xFFF0544F); 
+    const Color primaryOrange = Color(0xFFF0544F);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -111,21 +181,40 @@ class HomeContent extends StatelessWidget {
             const SizedBox(height: 32),
             const SearchInput(),
             const SizedBox(height: 24),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: EdgeInsets.zero,
-              itemCount: dummyEvents.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16.0,
-                mainAxisSpacing: 16.0,
-                childAspectRatio: 0.75,
+
+            // TAMPILAN KONTEN BERDASARKAN STATE
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator(color: primaryOrange))
+            else if (_errorMessage != null)
+               Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    "Terjadi kesalahan saat memuat data.\nPastikan Anda terhubung ke internet.\n\nDetail: $_errorMessage",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              )
+            else if (_events.isEmpty)
+              const Center(child: Text('Tidak ada event ditemukan.', style: TextStyle(color: Colors.grey)))
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.zero,
+                itemCount: _events.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16.0,
+                  mainAxisSpacing: 16.0,
+                  childAspectRatio: 1.5,
+                ),
+                itemBuilder: (context, index) {
+                  return EventCard(event: _events[index]);
+                },
               ),
-              itemBuilder: (context, index) {
-                return EventCard(event: dummyEvents[index]);
-              },
-            ),
+
             const SizedBox(height: 20),
           ],
         ),
@@ -166,7 +255,7 @@ class SearchInput extends StatelessWidget {
             color: Colors.grey.withOpacity(0.1),
             spreadRadius: 1,
             blurRadius: 5,
-            offset: const Offset(0, 3), 
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -195,9 +284,18 @@ class EventCard extends StatelessWidget {
   final Event event;
   const EventCard({super.key, required this.event});
 
+  String _formatDate(DateTime date) {
+    return DateFormat('dd MMM yyyy').format(date);
+  }
+
+  bool get _isFree {
+    return event.fee.toLowerCase() == 'free' || event.fee == '0';
+  }
+
   @override
   Widget build(BuildContext context) {
-    const Color primaryOrange = Color(0xFFF0544F); 
+    const Color primaryOrange = Color(0xFFF0544F);
+    final String dateAndPlace = '${_formatDate(event.startTime)} - ${event.location}';
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16.0),
@@ -217,18 +315,21 @@ class EventCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.network(
-              event.imageUrl,
+              'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/proxy-image/?url=${Uri.encodeComponent(event.thumbnail)}',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade800),
             ),
-            Container(
+           Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
+                  // stops mengontrol di mana warna berubah. 
+                  // 0.3 artinya sampai 30% dari atas masih transparan.
+                  stops: const [0.3, 1.0], 
                   colors: [
-                    Colors.black.withOpacity(0.2),
-                    Colors.black.withOpacity(0.7),
+                    Colors.transparent, // Bagian atas transparan
+                    const Color(0xFFFE4E11).withOpacity(0.9), // Bagian bawah orange kuat
                   ],
                 ),
               ),
@@ -239,10 +340,11 @@ class EventCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    spacing: 5,
                     children: [
-                      _buildPill(event.category, Colors.white.withOpacity(0.2)),
-                      _buildPill(event.type, primaryOrange),
+                      _buildPill(event.sportsCategory, const Color(0xFFFFE6D4), textColor: const Color(0xFF7E1B10)),
+                      _buildPill(event.activityCategory, const Color(0xFFFFE6D4), textColor: const Color(0xFF7E1B10)),
                     ],
                   ),
                   const Spacer(),
@@ -257,23 +359,23 @@ class EventCard extends StatelessWidget {
                               event.name,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 18,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              event.datePlace,
+                              dateAndPlace,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
+                                fontSize: 8,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
                         ),
                       ),
-                      if (event.isFree)
+                      if (_isFree)
                         _buildPill('Free', Colors.white.withOpacity(0.9), textColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
                     ],
                   ),
@@ -291,7 +393,7 @@ class EventCard extends StatelessWidget {
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
