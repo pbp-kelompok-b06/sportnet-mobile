@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../screens/homepage.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
 
 // --- MAIN APPLICATION WIDGET ---
 
@@ -15,7 +17,12 @@ class MyApp extends StatelessWidget {
     // Custom orange color inferred from the design
     const Color primaryOrange = Color(0xFFF0544F); 
 
-    return MaterialApp(
+    return Provider(
+      create: (_) {
+        CookieRequest request = CookieRequest();
+        return request;
+      },
+      child:  MaterialApp(
       title: 'SportNet',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -29,6 +36,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const HomePage(),
+    ),
     );
   }
 }
