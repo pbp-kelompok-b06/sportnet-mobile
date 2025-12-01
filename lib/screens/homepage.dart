@@ -5,6 +5,7 @@ import '../models/models.dart';
 import 'notif_page.dart';
 import 'package:sportnet/screens/login_page.dart';
 import 'package:sportnet/widgets/event_card.dart';
+import 'package:sportnet/screens/profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,12 +25,22 @@ class _HomePageState extends State<HomePage> {
   ];
 
   void _onItemTapped(int index) {
-    if(index == 3){
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    } else{
+    final request = context.read<CookieRequest>();
+    if (index == 3) { 
+      
+      if (request.loggedIn) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfilePage()), 
+        );
+      } else {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+        );
+      }
+      
+    } else {
       setState(() {
         _selectedIndex = index;
       });
@@ -109,7 +120,7 @@ class _HomeContentState extends State<HomeContent> {
       final request = context.read<CookieRequest>();
       
       // PERBAIKAN: request.get() mengembalikan dynamic (JSON), bukan http.Response
-      final response = await request.get('http://localhost:8000/event/json/');
+      final response = await request.get('https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/');
 
       List<dynamic> data = [];
 

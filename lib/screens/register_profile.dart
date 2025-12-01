@@ -132,7 +132,7 @@ class _RegisterProfileState extends State<RegisterProfile>{
                 
                 try {
                   final response = await request.postJson(
-                    "http://localhost:8000/authenticate/api/register/",
+                    "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/register/",
                     jsonEncode({
                       'username': widget.username,
                       'password': widget.password,
