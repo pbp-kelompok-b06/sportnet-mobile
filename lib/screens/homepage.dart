@@ -4,6 +4,7 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:intl/intl.dart';
 import '../models/models.dart';
 import 'notif_page.dart';
+import 'package:sportnet/screens/login_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,9 +24,16 @@ class _HomePageState extends State<HomePage> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if(index == 3){
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+    } else{
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -101,7 +109,7 @@ class _HomeContentState extends State<HomeContent> {
       final request = context.read<CookieRequest>();
       
       // PERBAIKAN: request.get() mengembalikan dynamic (JSON), bukan http.Response
-      final response = await request.get('https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/');
+      final response = await request.get('http://127.0.0.1:8000/event/json/');
 
       List<dynamic> data = [];
 
