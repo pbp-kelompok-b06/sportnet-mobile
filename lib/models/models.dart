@@ -40,19 +40,29 @@ class Event {
     });
 
     factory Event.fromJson(Map<String, dynamic> json) => Event(
-        id: json["id"],
-        name: json["name"],
-        description: json["description"],
-        thumbnail: json["thumbnail"],
-        location: json["location"],
-        address: json["address"],
-        startTime: DateTime.parse(json["start_time"]),
-        endTime: DateTime.parse(json["end_time"]),
-        sportsCategory: json["sports_category"],
-        activityCategory: json["activity_category"],
-        fee: json["fee"],
-        capacity: json["capacity"],
-        organizer: json["organizer"],
+        id: json["id"]?.toString() ?? "",
+        name: json["name"] ?? "Unknown Event",
+        description: json["description"] ?? "No description available",
+        thumbnail: json["thumbnail"] ?? "",
+        location: json["location"] ?? "Unknown Location",
+        address: json["address"] ?? "",
+        
+        // Cek null sebelum parse tanggal, gunakan DateTime.now() sebagai fallback
+        startTime: json["start_time"] != null 
+            ? DateTime.parse(json["start_time"]) 
+            : DateTime.now(),
+        endTime: json["end_time"] != null 
+            ? DateTime.parse(json["end_time"]) 
+            : DateTime.now(),
+            
+        sportsCategory: json["sports_category"] ?? "General",
+        activityCategory: json["activity_category"] ?? "Event",
+        
+        // Logika fee tetap sama, tapi tambahkan toString() aman
+        fee: json["fee"] == 0 || json["fee"] == null ? 'free' : json["fee"].toString(),
+        
+        capacity: json["capacity"] ?? 0,
+        organizer: json["organizer"] ?? "Unknown Organizer",
     );
 
     Map<String, dynamic> toJson() => {
