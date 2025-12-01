@@ -65,7 +65,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 try {
                   final response = await request.postJson(
-                  "http://localhost:8000/authenticate/api/login/", 
+                  "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
                     jsonEncode({
                       'username': username,
                       'password': password,
