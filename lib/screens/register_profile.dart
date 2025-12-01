@@ -121,50 +121,38 @@ class _RegisterProfileState extends State<RegisterProfile>{
             height: 50,
             child: ElevatedButton(
               onPressed: () async {
-                bool isValid = false;
-                if (widget.role == 'organizer') {
-                  isValid = _nameController.text.isNotEmpty && _contactController.text.isNotEmpty;
-                } else {
-                  isValid = _nameController.text.isNotEmpty &&
-                            _contactController.text.isNotEmpty &&
-                            _selectedDate != null; 
-                }
-
-                if (!isValid) {
+                if (_nameController.text.isEmpty ||
+                    _contactController.text.isEmpty ||
+                    _extraController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Semua data wajib diisi!")),
                   );
                   return;
                 }
-
-                Map<String, dynamic> data = {
-                  'username': widget.username,
-                  'password': widget.password,
-                  'role': widget.role,
-                  'email': '',
-                };
-
-                if (widget.role == 'participant') {
-                  
-                  data['full_name'] = _nameController.text;
-                  data['location'] = _contactController.text; 
-                  data['interests'] = "-"; 
-                  data['birth_date'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-                  data['about'] = "-";
-                } else {
-        
-                  data['organizer_name'] = _nameController.text;
-                  data['contact_email'] = _contactController.text; 
-                  data['contact_phone'] = "-";
-                  data['email'] = _contactController.text; 
-                  data['about'] = "-";
-                }
-
                 
                 try {
                   final response = await request.postJson(
                     "http://localhost:8000/authenticate/api/register/",
-                    jsonEncode(data),
+                    jsonEncode({
+                      'username': widget.username,
+                      'password': widget.password,
+                      'role': widget.role,
+                      'email': '', // Default kosong
+
+                      if (widget.role == 'participant') ...{
+                        'full_name': _nameController.text,
+                        'location': _contactController.text,
+                        'interests': _extraController.text,
+                        'birth_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
+                        'about': '-',
+                      } else ...{
+                        'organizer_name': _nameController.text,
+                        'contact_email': _contactController.text,
+                        'contact_phone': _extraController.text,
+                        'email': _contactController.text,
+                        'about': '-',
+                      }
+                    })
                   );
 
                   if (context.mounted) {
