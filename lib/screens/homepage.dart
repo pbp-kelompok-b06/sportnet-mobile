@@ -3,9 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/models.dart';
 import 'notif_page.dart';
-import 'package:sportnet/screens/login_page.dart';
+import 'profile.dart';
 import 'package:sportnet/widgets/event_card.dart';
-import 'package:sportnet/screens/profile.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,30 +20,13 @@ class _HomePageState extends State<HomePage> {
     const HomeContent(),
     const PlaceholderWidget(title: 'Bookmarks'),
     const NotificationsPage(),
-    const PlaceholderWidget(title: 'Profile'),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
-    final request = context.read<CookieRequest>();
-    if (index == 3) { 
-      
-      if (request.loggedIn) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProfilePage()), 
-        );
-      } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
-        );
-      }
-      
-    } else {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
