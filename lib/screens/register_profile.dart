@@ -121,9 +121,17 @@ class _RegisterProfileState extends State<RegisterProfile>{
             height: 50,
             child: ElevatedButton(
               onPressed: () async {
-                if (_nameController.text.isEmpty ||
-                    _contactController.text.isEmpty ||
-                    _extraController.text.isEmpty) {
+                bool isValid = false;
+                if (widget.role == 'organizer') {
+                  isValid = _nameController.text.isNotEmpty && 
+                            _contactController.text.isNotEmpty;
+                } else {
+                  isValid = _nameController.text.isNotEmpty &&
+                            _contactController.text.isNotEmpty &&
+                            _selectedDate != null; 
+                }
+
+                if (!isValid) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Semua data wajib diisi!")),
                   );
