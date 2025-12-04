@@ -17,8 +17,13 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String dateAndPlace = '${_formatDate(event.startTime)} - ${event.location}';
+    String thumbnailUrl = event.thumbnail;
 
+    if (!thumbnailUrl.startsWith('http')) {
+      thumbnailUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id$thumbnailUrl";
+    }
+
+    final String dateAndPlace = '${_formatDate(event.startTime)} - ${event.location}';
     return ClipRRect(
       borderRadius: BorderRadius.circular(16.0),
       child: Container(
@@ -39,7 +44,12 @@ class EventCard extends StatelessWidget {
             Image.network(
               'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/proxy-image/?url=${Uri.encodeComponent(event.thumbnail)}',
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade800),
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: Colors.grey.shade800,
+                  child: const Center(child: Icon(Icons.broken_image, color: Colors.white)),
+                );
+              },
             ),
            Container(
               decoration: BoxDecoration(

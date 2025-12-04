@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/models.dart';
 import 'notif_page.dart';
-import 'package:sportnet/screens/login_page.dart';
+import 'profile.dart';
 import 'package:sportnet/widgets/event_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,20 +20,13 @@ class _HomePageState extends State<HomePage> {
     const HomeContent(),
     const PlaceholderWidget(title: 'Bookmarks'),
     const NotificationsPage(),
-    const PlaceholderWidget(title: 'Profile'),
+    const ProfilePage(),
   ];
 
   void _onItemTapped(int index) {
-    if(index == 3){
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-    } else{
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   @override
