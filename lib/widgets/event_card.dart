@@ -42,7 +42,7 @@ class EventCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.network(
-              thumbnailUrl,
+              'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/proxy-image/?url=${Uri.encodeComponent(event.thumbnail)}',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -89,6 +89,8 @@ class EventCard extends StatelessWidget {
                           children: [
                             Text(
                               event.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -98,9 +100,11 @@ class EventCard extends StatelessWidget {
                             const SizedBox(height: 4),
                             Text(
                               dateAndPlace,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.8),
-                                fontSize: 8,
+                                fontSize: 9,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
