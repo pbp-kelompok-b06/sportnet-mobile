@@ -109,7 +109,7 @@ class _HomeContentState extends State<HomeContent> {
       final request = context.read<CookieRequest>();
       
       // PERBAIKAN: request.get() mengembalikan dynamic (JSON), bukan http.Response
-      final response = await request.get('http://localhost:8000/event/json/');
+      final response = await request.get('https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/');
 
       List<dynamic> data = [];
 
