@@ -19,6 +19,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<List<model.Notification>> _fetchNotifications() async {
     // Simulasi pengambilan data notifikasi dari server atau database
     final request = context.read<CookieRequest>();
+    var login = request.login(
+      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/', {
+        'username': 'adaada',
+        'password': 'testerakun',
+      },);
+      print(request.loggedIn);
+      print(login);
     final response = await request.get(
     'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
   );
