@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
-import 'package:sportnet/screens/login_page.dart';
 import '../models/models.dart';
 import 'notif_page.dart';
 import 'profile.dart';
@@ -27,15 +26,6 @@ class _HomePageState extends State<HomePage> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      if (_selectedIndex == 1 || _selectedIndex == 2) {
-        if (context.read<CookieRequest>().loggedIn == false) {
-         Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => LoginPage()),
-          );
-        }
-      }
     });
   }
 
@@ -94,6 +84,7 @@ class HomeContent extends StatefulWidget {
 class _HomeContentState extends State<HomeContent> {
   // Variabel state
   List<Event> _events = [];
+  List<Event> _filteredEvents = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -117,17 +108,10 @@ class _HomeContentState extends State<HomeContent> {
 
       // Logika untuk menangani berbagai kemungkinan format JSON
       if (response is List) {
-        // Jika API langsung mengembalikan List: [{...}, {...}]
         data = response;
       } else if (response is Map && response.containsKey('events')) {
-        // Jika API mengembalikan Object dengan key 'events': {"events": [...]}
         data = response['events'];
       } else if (response is Map) {
-         // Fallback jika API mengembalikan Map tapi bukan struktur diatas, mungkin perlu disesuaikan
-         // Namun biasanya endpoint /json/ django mengembalikan List.
-         // Kita coba anggap ini error format jika tidak sesuai
-         // Atau jika ini adalah endpoint yang mengembalikan list of objects (Django serialize),
-         // response akan terbaca sebagai List, jadi blok ini mungkin jarang tersentuh
          throw Exception("Format data tidak dikenali: $response");
       }
 
@@ -142,6 +126,7 @@ class _HomeContentState extends State<HomeContent> {
       if (mounted) {
         setState(() {
           _events = events;
+          _filteredEvents = events;
           _isLoading = false;
         });
       }
@@ -154,6 +139,26 @@ class _HomeContentState extends State<HomeContent> {
         });
       }
     }
+  }
+
+  void _runFilter(String enteredKeyword) {
+    List<Event> results = [];
+    if (enteredKeyword.isEmpty) {
+      // Jika kosong, tampilkan semua event
+      results = _events;
+    } else {
+      // Filter berdasarkan nama, kategori, atau lokasi
+      results = _events
+          .where((event) =>
+              event.name.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
+              event.sportsCategory.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
+              event.location.toLowerCase().contains(enteredKeyword.toLowerCase()))
+          .toList();
+    }
+
+    setState(() {
+      _filteredEvents = results;
+    });
   }
 
   @override
@@ -189,7 +194,9 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
             const SizedBox(height: 32),
-            const SearchInput(),
+            SearchInput(
+              onChanged: _runFilter, 
+            ),
             const SizedBox(height: 24),
 
             // TAMPILAN KONTEN BERDASARKAN STATE
@@ -213,7 +220,7 @@ class _HomeContentState extends State<HomeContent> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 padding: EdgeInsets.zero,
-                itemCount: _events.length,
+                itemCount: _filteredEvents.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 16.0,
@@ -221,7 +228,7 @@ class _HomeContentState extends State<HomeContent> {
                   childAspectRatio: 1.5,
                 ),
                 itemBuilder: (context, index) {
-                  return EventCard(event: _events[index]);
+                  return EventCard(event: _filteredEvents[index]);
                 },
               ),
 
@@ -251,7 +258,9 @@ class PlaceholderWidget extends StatelessWidget {
 }
 
 class SearchInput extends StatelessWidget {
-  const SearchInput({super.key});
+  // Tambahkan callback function
+  final ValueChanged<String> onChanged; 
+  const SearchInput({super.key, required this.onChanged}); 
 
   @override
   Widget build(BuildContext context) {
@@ -269,21 +278,22 @@ class SearchInput extends StatelessWidget {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
           Expanded(
             child: TextField(
-              decoration: InputDecoration(
+              onChanged: onChanged, // Panggil fungsi saat teks berubah
+              decoration: const InputDecoration( // Tambahkan const di sini
                 hintText: 'Search sports, categories, places',
                 hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
               ),
-              style: TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14),
             ),
           ),
-          Icon(Icons.search, color: Colors.grey, size: 24),
+          const Icon(Icons.search, color: Colors.grey, size: 24),
         ],
       ),
     );
