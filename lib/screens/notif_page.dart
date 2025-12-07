@@ -19,13 +19,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<List<model.Notification>> _fetchNotifications() async {
     // Simulasi pengambilan data notifikasi dari server atau database
     final request = context.read<CookieRequest>();
-    var login = request.login(
-      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/', {
-        'username': 'adaada',
-        'password': 'testerakun',
-      },);
-      print(request.loggedIn);
-      print(login);
+    print(request.loggedIn);
     final response = await request.get(
     'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
   );
@@ -46,6 +40,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   // Fungsi untuk menandai semua sebagai sudah dibaca
   void _markAllAsRead() {
+    final request = context.read<CookieRequest>();
+    // Kirim request ke server untuk menandai semua sebagai sudah dibaca
+    request.postJson(
+      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/mark-read-all/',
+      jsonEncode(<String, String>{}),
+    );
     setState(() {
       _notifications = _notifications.map((n) {
         return model.Notification(
