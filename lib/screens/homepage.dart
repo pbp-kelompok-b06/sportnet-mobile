@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:sportnet/screens/login_page.dart';
 import '../models/models.dart';
 import 'notif_page.dart';
 import 'profile.dart';
@@ -26,6 +27,15 @@ class _HomePageState extends State<HomePage> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      if (_selectedIndex == 1 || _selectedIndex == 2) {
+        if (context.read<CookieRequest>().loggedIn == false) {
+         Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+                builder: (context) => LoginPage()),
+          );
+        }
+      }
     });
   }
 
@@ -101,9 +111,8 @@ class _HomeContentState extends State<HomeContent> {
       // Mengambil instance CookieRequest dari Provider
       final request = context.read<CookieRequest>();
       
-      // PERBAIKAN: request.get() mengembalikan dynamic (JSON), bukan http.Response
       final response = await request.get('https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/');
-
+      print(request.loggedIn);
       List<dynamic> data = [];
 
       // Logika untuk menangani berbagai kemungkinan format JSON
