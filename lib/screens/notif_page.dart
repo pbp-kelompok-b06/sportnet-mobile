@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/notifications.dart' as model;
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:sportnet/screens/login_page.dart';
 import 'dart:convert';
 
 
@@ -17,14 +18,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
   static List<model.Notification> _notifications = [];
 
   Future<List<model.Notification>> _fetchNotifications() async {
-    // Simulasi pengambilan data notifikasi dari server atau database
+    // fetch data notifikasi dari server atau database
     final request = context.read<CookieRequest>();
     print(request.loggedIn);
     final response = await request.get(
     'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
   );
 
-  // Buat list sementara (lokal) agar tidak menumpuk data lama
     List<model.Notification> list = [];
     
     var data = response['notifications'] as List<dynamic>;
@@ -65,14 +65,13 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final request = context.read<CookieRequest>();
     final notifId = _notifications[index].id;
     
-    // Optimistic UI Update: Ubah tampilan dulu biar cepat
     setState(() {
       final old = _notifications[index];
       _notifications[index] = model.Notification(
         title: old.title,
         message: old.message,
         timestamp: old.timestamp,
-        isRead: true, // Ubah jadi true
+        isRead: true,
         eventId: old.eventId,
         id: old.id,
       );
@@ -86,7 +85,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
       );
       
       if (response['status'] != 'success') {
-         // Jika gagal, kembalikan status (opsional) atau tampilkan snackbar
          print("Gagal mark read: ${response['message']}");
       }
     } catch (e) {
@@ -99,13 +97,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final request = context.read<CookieRequest>();
     final notifId = _notifications[index].id;
 
-    // Simpan item sementara jika perlu undo (opsional)
-    // final deletedItem = _notifications[index];
-
     setState(() {
       _notifications.removeAt(index);
     });
-
     try {
       final response = await request.postJson(
         'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/delete-flutter/',
@@ -129,7 +123,45 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
     const Color primaryOrange = Color(0xFFF0544F);
+    if (!request.loggedIn) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Notifications")),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Tampilkan pesan error (opsional, bisa dipersingkat)
+                Text(
+                  "Please log in to view your notifications.",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Login"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,8 +231,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 
                 // 4. Tampilkan Data menggunakan ListView.builder
                 else {
-                  // Kita menggunakan _notifications yang sudah di-update di fetch
-                  // atau bisa menggunakan snapshot.data!
+                  
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     itemCount: _notifications.length, // Jumlah item sesuai data
@@ -355,22 +386,5 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       ),
     );
-  }
-
-  IconData _getIconForType(String type) {
-    switch (type) {
-      case 'match':
-        return Icons.calendar_today;
-      case 'booking':
-        return Icons.confirmation_number_outlined;
-      case 'offer':
-        return Icons.local_offer_outlined;
-      case 'payment':
-        return Icons.check_circle_outline;
-      case 'friend':
-        return Icons.group_add_outlined;
-      default:
-        return Icons.notifications_none;
-    }
   }
 }
