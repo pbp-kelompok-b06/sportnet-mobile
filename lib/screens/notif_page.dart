@@ -43,7 +43,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final request = context.read<CookieRequest>();
     // Kirim request ke server untuk menandai semua sebagai sudah dibaca
     request.postJson(
-      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/mark-read-all/',
+      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/api/read-all/',
       jsonEncode(<String, String>{}),
     );
     setState(() {
@@ -78,7 +78,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
     try {
       final response = await request.postJson(
-        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/flutter-mark-as-read/',
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/api/read/',
         jsonEncode(<String, String>{
           'notif_id': notifId.toString(),
         }),
@@ -102,7 +102,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
     try {
       final response = await request.postJson(
-        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/delete-flutter/',
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/api/delete/',
         jsonEncode(<String, String>{
           'notif_id': notifId.toString(),
         }),
