@@ -17,6 +17,7 @@ class LoginPage extends StatefulWidget{
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
 
   final Color _sportNetOrange = const Color(0xFFFF7F50);
 
@@ -40,12 +41,26 @@ class _LoginPageState extends State<LoginPage> {
 
           // input password
           CustomTextField(
-            controller: _passwordController,
-            hintText: 'Enter your password',
-            icon: Icons.lock_outline,
-            isPassword: true,
-          ),
-          const SizedBox(height: 40),
+              controller: _passwordController, 
+              hintText: "Enter your password",
+              icon: Icons.lock,
+              obscureText: !_isPasswordVisible, 
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 12.0), 
+                child: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
 
           // sign in button
           SizedBox(
