@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
+import 'package:sportnet/screens/homepage.dart';
 import 'package:sportnet/screens/login_page.dart';
 
 
@@ -19,7 +20,6 @@ class _ProfilePageState extends State<ProfilePage> {
   // Variabel State
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
-  String? _errorMessage;
 
   @override
   void initState() {
@@ -49,9 +49,12 @@ class _ProfilePageState extends State<ProfilePage> {
       if (response['status'] == 'error' || response['detail'] == 'Invalid token') {
          if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Sesi habis, silakan login kembali.")),
+              const SnackBar(
+                content: Text("Sesi telah habis, silakan login kembali."),
+                backgroundColor: Colors.red,
+              ),
            );
-           // TENDANG KE LOGIN PAGE
+           
            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const LoginPage()),
@@ -59,17 +62,19 @@ class _ProfilePageState extends State<ProfilePage> {
            );
          }
          return;
-      } else {
+      }
         setState(() {
           _profileData = response;
           _isLoading = false;
         });
-      }
     } catch (e) {
-      setState(() {
-        _errorMessage = "Gagal memuat profil: $e";
-        _isLoading = false;
-      });
+      if (mounted) {
+         Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+         );
+      }
     }
   }
   
@@ -79,52 +84,8 @@ class _ProfilePageState extends State<ProfilePage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    if (_errorMessage != null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text("Error")),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Tampilkan pesan error (opsional, bisa dipersingkat)
-                Text(
-                  "Gagal memuat profil. Sepertinya sesi Anda telah habis.",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.red),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Detail: $_errorMessage", 
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  maxLines: 2, 
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 24),
-                
-                // TOMBOL PENYELAMAT: LOGIN ULANG
-                ElevatedButton(
-                  onPressed: () {
-                    // Arahkan ke Login Page dan hapus history sebelumnya
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
-                      (route) => false,
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryOrange,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text("Login Ulang"),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    if (_profileData == null) {
+       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     // parsing data
@@ -141,7 +102,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     String image = profile['profile_picture'] ?? ""; // url gambar
 
-    // Handling gambar URL (tambahkan base URL jika dari Django local)
+    // Handling gambar URL
     if (image.isNotEmpty && !image.startsWith('http')) {
       image = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id$image"; 
     }
@@ -168,20 +129,19 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildAboutCard(role, profile),
                   const SizedBox(height: 16),
 
-                  // action buttons
-                  if (isMe) _buildActionButtons(),
-                  const SizedBox(height: 24),
-
                   // event section
                   if (role == 'participant' && profile['booked_events'] != null) ...[
-                     _buildEventSection("Upcoming Activities", profile['booked_events']['upcoming']),
+                     _buildEventSection("Upcoming Events", profile['booked_events']['upcoming']),
                      const SizedBox(height: 20),
-                     _buildEventSection("History", profile['booked_events']['past']),
+                     _buildEventSection("Past Events", profile['booked_events']['past']),
                   ] else if (role == 'organizer' && profile['organized_events'] != null) ...[
                      _buildEventSection("Created Events", profile['organized_events']),
                   ],
-                  
                   const SizedBox(height: 40),
+                  
+                  // action buttons
+                  if (isMe) _buildActionButtons(),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
@@ -192,100 +152,149 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 // widgets builder
 
-Widget _buildHeader(String name, String username, String role, String imageUrl) {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        // Banner Gradient
-        Container(
-          height: 180,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [_primaryOrange, _primaryOrange.withValues(alpha: 0.7)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        // Back Button (Kalau liat profil orang lain)
-        if (widget.username != null)
-          Positioned(
-            top: 40,
-            left: 16,
-            child: CircleAvatar(
-              backgroundColor: Colors.white.withValues(alpha: 0.3),
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-          ),
+Widget _buildHeader(
+      String name, String username, String role, String imageUrl) {
+    // Definisi warna baru sesuai referensi desain
+    final Color topOrange = const Color(0xFFFFAB91); // Oranye lembut
+    final Color bottomPeach = const Color(0xFFFFCCBC); // Peach terang
+    final Color nameColor = const Color(0xFFE64A19); // Merah-oranye untuk nama
+    final Color roleColor = Colors.grey.shade600; // Abu-abu untuk role
 
-        // Content Container
-        Container(
-          margin: const EdgeInsets.only(top: 120),
-          padding: const EdgeInsets.only(top: 60, bottom: 20),
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.grey, // Placeholder
-          ),
-        ),
-        
-        // Avatar & Text
-        Positioned(
-          top: 100, // mengatur posisi overlap
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: CircleAvatar(
-                  radius: 50,
-                  backgroundImage: imageUrl.isNotEmpty 
-                      ? NetworkImage(imageUrl) 
-                      : const AssetImage('image/profile-default.png') as ImageProvider,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                name,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "@$username",
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+    return Column(
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            ClipPath(
+              clipper: HeaderWaveClipper(),
+              child: Container(
+                height: 180,
+                width: double.infinity,
                 decoration: BoxDecoration(
-                  color: role == 'participant' ? Colors.blue[50] : Colors.orange[50],
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: role == 'participant' ? Colors.blue : Colors.orange,
-                    width: 0.5
-                  )
-                ),
-                child: Text(
-                  role.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10, 
-                    fontWeight: FontWeight.bold,
-                    color: role == 'participant' ? Colors.blue : Colors.orange,
+                  gradient: LinearGradient(
+                    colors: [topOrange, bottomPeach],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
                 ),
               ),
-            ],
+            ),
+
+            Positioned(
+              top: 50, 
+              left: 16,
+              right: 16,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (widget.username != null)
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+                  ) else const SizedBox(width: 24),
+                ],
+              ),
+            ),
+
+            Positioned(
+              bottom: -30, 
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6), 
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 15,
+                          spreadRadius: 5,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 55,
+                      backgroundColor: Colors.grey.shade200,
+                      backgroundImage: imageUrl.isNotEmpty
+                          ? NetworkImage(imageUrl)
+                          : const AssetImage('image/profile-default.png')
+                              as ImageProvider,
+                    ),
+                  ),
+
+                  if (widget.username == null)
+                    GestureDetector(
+                      onTap: () {
+                         // TODO: Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfilePage()));
+                         ScaffoldMessenger.of(context).showSnackBar(
+                           const SnackBar(content: Text("Buka Halaman Edit Profile"))
+                         );
+                      },
+                      child: Container(
+                        height: 40, 
+                        width: 40,
+                        margin: const EdgeInsets.only(bottom: 5, right: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            )
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.edit, 
+                          size: 20, 
+                          color: _primaryOrange, 
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 40), 
+
+        Text(
+          name,
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: nameColor, // Warna merah-oranye
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+
+        const SizedBox(height: 8),
+
+        // Username & Role (Gaya baru, digabung jadi satu baris teks)
+        Text(
+          "@$username  •  ${role.toUpperCase()}",
+          style: TextStyle(
+            color: roleColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
           ),
         ),
+
+        const SizedBox(height: 24), // Jarak sebelum konten berikutnya
       ],
     );
   }
+  
 
   Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
-    String label = role == 'organizer' ? "Pengikut" : "Mengikuti";
+    String label = role == 'organizer' ? "Followers" : "Following";
     int count = role == 'organizer' ? stats['followers_count'] : stats['following_count'];
 
     return Container(
@@ -301,15 +310,29 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-              const SizedBox(height: 4),
-              Text("$count Orang", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ],
+          Expanded( 
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                   label.toUpperCase(), 
+                   style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                   overflow: TextOverflow.ellipsis,
+                   maxLines: 1,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                   "$count", 
+                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                   overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
-          // Tombol Chevron untuk liat detail
+          
+          const SizedBox(width: 8),
+
+          // Tombol Chevron
           CircleAvatar(
             backgroundColor: Colors.grey[100],
             radius: 16,
@@ -334,23 +357,23 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Tentang", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          const Text("About", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           const Divider(height: 24),
           Text(
             (profile['about'] != null && profile['about'] != "-") 
                 ? profile['about'] 
-                : "Belum ada deskripsi diri.",
+                : "No description available.", // Ubah ke Inggris
             style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 20),
           
           if (role == 'participant') ...[
-            _buildInfoRow(Icons.location_on, "Domisili", profile['location'] ?? "-"),
-            _buildInfoRow(Icons.cake, "Tanggal Lahir", profile['birth_date'] ?? "-"),
-            _buildInfoRow(Icons.sports_tennis, "Minat", profile['interests'] ?? "-"),
+            _buildInfoRow(Icons.location_on, "Location", profile['location'] ?? "-"), 
+            _buildInfoRow(Icons.cake, "Birth Date", profile['birth_date'] ?? "-"),
+            _buildInfoRow(Icons.sports_tennis, "Interests", profile['interests'] ?? "-"),
           ] else ...[
             _buildInfoRow(Icons.email, "Email", profile['contact_email'] ?? "-"),
-            _buildInfoRow(Icons.phone, "Telepon", profile['contact_phone'] ?? "-"),
+            _buildInfoRow(Icons.phone, "Phone", profile['contact_phone'] ?? "-"),
           ]
         ],
       ),
@@ -388,17 +411,31 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
       children: [
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () {
-               // TODO: Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfilePage()));
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Edit Profile Clicked")));
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              final request = context.read<CookieRequest>();
+              try {
+                // Logout API Call
+                await request.logout("https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/logout/");
+              } catch (e) {
+                debugPrint("Logout Failed: $e");
+              }
+              
+              if (!mounted) return;
+
+              Navigator.pushAndRemoveUntil(
+                context, 
+                MaterialPageRoute(builder: (_) => const HomePage()), 
+                (r) => false
+              );
             },
-            icon: const Icon(Icons.edit, size: 18),
-            label: const Text("Edit Profil"),
-            style: OutlinedButton.styleFrom(
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text("Logout"),
+            style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
+              backgroundColor: Colors.grey[200],
               foregroundColor: Colors.black87,
-              side: BorderSide(color: Colors.grey.shade300),
+              elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
@@ -409,7 +446,7 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
           child: OutlinedButton.icon(
             onPressed: _showDeleteConfirmDialog,
             icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text("Hapus Akun"),
+            label: const Text("Delete Account"),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
               foregroundColor: Colors.red,
@@ -451,17 +488,19 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
               children: [
                 Icon(Icons.event_busy, size: 40, color: Colors.grey[300]),
                 const SizedBox(height: 8),
-                Text("Tidak ada aktivitas.", style: TextStyle(color: Colors.grey[500], fontSize: 14)),
+                Text("No Activities yet.", style: TextStyle(color: Colors.grey[500], fontSize: 14)),
               ],
             ),
           )
         else 
           // jika ada event
           SizedBox(
-            height: 200,
+            height: 220,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: events.length,
+              physics: const BouncingScrollPhysics(), 
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemBuilder: (context, index) {
                 final event = events[index];
 
@@ -470,7 +509,6 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
                 Widget imageWidget;
 
                 if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
-                  // Cek URL lengkap atau relatif
                   if (!thumbnailUrl.startsWith('http')) {
                     thumbnailUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id$thumbnailUrl"; 
                   }
@@ -488,7 +526,6 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
                     ),
                   );
                 } else {
-                  // Fallback Asset
                   imageWidget = Image.asset(
                     'assets/image/no-image.jpg', 
                     height: 120,
@@ -548,63 +585,92 @@ Widget _buildHeader(String name, String username, String role, String imageUrl) 
   void _showDeleteConfirmDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text("Hapus Akun?"),
-          content: const Text("Tindakan ini permanen dan tidak dapat dibatalkan. Semua data profil dan riwayat akan hilang."),
+          title: const Text("Delete Account?"),
+          content: const Text("This action is permanent. Your account will be permanently deleted."), 
           actions: [
-            // Tombol Batal
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)), // Batal
             ),
-            
-            // Tombol Hapus
             TextButton(
               onPressed: () async {
-                 Navigator.of(context).pop();
-                 
-                 final request = context.read<CookieRequest>();
-                 
-                 try {
-                   final response = await request.post(
-                     "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/profile/api/delete/", 
-                     {}, 
-                   );
+                final request = context.read<CookieRequest>();
+                try {
+                  final response = await request.post(
+                    "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/profile/api/delete/",
+                    {},
+                  );
 
-                   // Cek Status
-                   if (response['status'] == 'success') {
-                      if(context.mounted) {
-                          Navigator.pushAndRemoveUntil(
-                              context, 
-                              MaterialPageRoute(builder: (_) => const LoginPage()), 
-                              (r) => false
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Akun berhasil dihapus."))
-                          );
-                      }
-                   } else {
-                      // Handle jika server menolak
-                      if(context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(response['message'] ?? "Gagal menghapus akun."))
-                          );
-                      }
-                   }
-                 } catch(e) {
-                   if(context.mounted) {
+                  if (response['status'] == 'success') {
+                    if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
+                    }
+                    if (!mounted) return;
+
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomePage()), 
+                      (r) => false,
+                    );
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Account deleted successfully.")) 
+                    );
+
+                  } else {
+                    // Handle Gagal
+                    if (dialogContext.mounted) {
+                       Navigator.of(dialogContext).pop();
+                    }
+                    
+                    if (mounted) {
                        ScaffoldMessenger.of(context).showSnackBar(
-                           SnackBar(content: Text("Terjadi kesalahan: $e"))
+                         SnackBar(content: Text(response['message'] ?? "Failed to delete account.")) 
                        );
+                    }
+                  }
+                } catch (e) {
+                   // Handle Error
+                   if (dialogContext.mounted) {
+                      Navigator.of(dialogContext).pop();
                    }
-                 }
+                   if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Error: $e"))
+                      );
+                   }
+                }
               },
-              child: const Text("Hapus", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              child: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)), 
             ),
           ],
         );
       },
     );
   }
+}
+
+class HeaderWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    
+    path.lineTo(0, size.height); 
+    var controlPoint = Offset(size.width / 2, size.height - 100); 
+
+    var endPoint = Offset(size.width, size.height);
+
+    path.quadraticBezierTo(
+        controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
+
+    path.lineTo(size.width, 0);
+    path.close();
+    
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

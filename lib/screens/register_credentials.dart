@@ -15,7 +15,8 @@ class RegisterCredentials extends StatefulWidget {
 class _RegisterCredentialsState extends State<RegisterCredentials>{
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
+  bool _isPasswordVisible = false;
+
 
   @override
   Widget build(BuildContext context){
@@ -43,18 +44,23 @@ class _RegisterCredentialsState extends State<RegisterCredentials>{
               controller: _passwordController, 
               hintText: "Choose a strong password",
               icon: Icons.lock,
-              isPassword: true,
+              obscureText: !_isPasswordVisible, 
+              suffixIcon: Padding(
+                padding: const EdgeInsets.only(right: 12.0), 
+                child: IconButton(
+                  icon: Icon(
+                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isPasswordVisible = !_isPasswordVisible;
+                    });
+                  },
+                ),
+              ),
             ),
             const SizedBox(height: 16),
-
-            // confirm password field
-            CustomTextField(
-              controller: _confirmController, 
-              hintText: "Confirm your password",
-              icon: Icons.lock_clock,
-              isPassword: true,
-            ),
-            const SizedBox(height: 30),
 
             SizedBox(
             width: 150,
@@ -63,10 +69,6 @@ class _RegisterCredentialsState extends State<RegisterCredentials>{
               onPressed: () {
                 if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mohon isi semua data")));
-                  return;
-                }
-                if (_passwordController.text != _confirmController.text) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Password tidak sama")));
                   return;
                 }
 
@@ -117,9 +119,12 @@ class _RegisterCredentialsState extends State<RegisterCredentials>{
     );
   }
 
-  Widget _buildDot(bool isActive) => Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      width: isActive ? 20 : 10, height: 10,
-      decoration: BoxDecoration(color: isActive ? const Color(0xFFFF7F50) : Colors.grey[300], borderRadius: BorderRadius.circular(10)),
-  );
+Widget _buildDot(bool isActive) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: isActive ? 20 : 10,
+        height: 10,
+        decoration: BoxDecoration(
+            color: isActive ? const Color(0xFFFF7F50) : Colors.grey[300],
+            borderRadius: BorderRadius.circular(10)),
+      );
 }

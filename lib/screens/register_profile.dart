@@ -150,7 +150,7 @@ class _RegisterProfileState extends State<RegisterProfile>{
                       if (widget.role == 'participant') ...{
                         'full_name': _nameController.text,
                         'location': _contactController.text,
-                        'interests': _extraController.text,
+                        'interests': '-',
                         'birth_date': DateFormat('yyyy-MM-dd').format(_selectedDate!),
                         'about': '-',
                       } else ...{
