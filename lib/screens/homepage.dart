@@ -5,6 +5,8 @@ import '../models/models.dart';
 import 'notif_page.dart';
 import 'profile.dart';
 import 'package:sportnet/widgets/event_card.dart';
+import 'package:sportnet/models/bookmarks.dart';
+import 'bookmark_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,7 +20,10 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = [
     const HomeContent(),
-    const PlaceholderWidget(title: 'Bookmarks'),
+    ChangeNotifierProvider(
+      create: (_) => BookmarkProvider(),
+      child: const BookmarkPage(),
+    ),
     const NotificationsPage(),
     const ProfilePage(),
   ];

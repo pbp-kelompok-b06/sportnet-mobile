@@ -63,14 +63,27 @@ class _LoginPageState extends State<LoginPage> {
                   return;
                 }
 
+                final response = await request.postJson(
+                  "http://localhost:8000/authenticate/api/login/", 
+                  {
+                    jsonEncode(<String, String>{
+                        'username': username,
+                        'password': password,
+                      })
+                  }
+                );
+
+                // 1. GANTI KE POST JSON (Biar gak crash)
                 try {
                   final response = await request.postJson(
-                  "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
-                    jsonEncode({
-                      'username': username,
-                      'password': password,
-                    }));  
+                      "http://10.0.2.2:8000/authenticate/api/login/", 
+                      jsonEncode(<String, String>{
+                        'username': username,
+                        'password': password,
+                      })
+                  );
 
+                  // 2. CEK STATUS SECARA MANUAL
                   if (response['status'] == 'success') {
                     
                     // Sukses
@@ -91,6 +104,7 @@ class _LoginPageState extends State<LoginPage> {
                     }
 
                   } else {
+                    // Gagal (Password salah, dll)
                     if (context.mounted) {
                       showDialog(
                         context: context,
@@ -108,6 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   }
                 } catch (e) {
+                    // Error Koneksi (Server mati / Internet putus)
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Terjadi kesalahan: $e")),
