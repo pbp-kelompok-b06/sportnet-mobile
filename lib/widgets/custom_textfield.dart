@@ -27,6 +27,7 @@ class CustomTextField extends StatelessWidget {
       obscureText: obscureText, 
       maxLines: maxLines,
       keyboardType: keyboardType,
+      textAlignVertical: TextAlignVertical.center,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 12),

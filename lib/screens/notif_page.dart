@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/notifications.dart' as model;
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
-import 'package:sportnet/screens/login_page.dart';
+import 'package:sportnet/screens/authentication/login_page.dart';
 import 'dart:convert';
 
 

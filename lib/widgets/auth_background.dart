@@ -58,7 +58,6 @@ class AuthBackground extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // JUDUL (Dinamis, dikirim dari halaman lain)
                     Text(
                       title,
                       textAlign: TextAlign.center,
@@ -70,7 +69,6 @@ class AuthBackground extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     
-                    // SUBJUDUL (Dinamis)
                     Text(
                       subtitle,
                       textAlign: TextAlign.center,
@@ -78,7 +76,6 @@ class AuthBackground extends StatelessWidget {
                     ),
                     const SizedBox(height: 30),
 
-                    // KONTEN KHUSUS (Isinya Form/Tombol yg beda-beda)
                     child, 
                   ],
                 ),

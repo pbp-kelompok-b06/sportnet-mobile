@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:sportnet/screens/homepage.dart';
-import 'package:sportnet/screens/login_page.dart';
+import 'package:sportnet/screens/authentication/login_page.dart';
+import 'package:sportnet/screens/profile/edit_profile.dart';
+import 'package:intl/intl.dart';
 
 
 class ProfilePage extends StatefulWidget {
@@ -15,8 +17,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final Color _primaryOrange = const Color(0xFFFF7F50);
-
   // Variabel State
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
@@ -32,7 +32,6 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _fetchProfile() async {
     final request = context.read<CookieRequest>();
     
-    // Tentukan URL
     String url;
     if (widget.username != null) {
       // Orang lain
@@ -154,11 +153,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
 Widget _buildHeader(
       String name, String username, String role, String imageUrl) {
-    // Definisi warna baru sesuai referensi desain
-    final Color topOrange = const Color(0xFFFFAB91); // Oranye lembut
-    final Color bottomPeach = const Color(0xFFFFCCBC); // Peach terang
-    final Color nameColor = const Color(0xFFE64A19); // Merah-oranye untuk nama
-    final Color roleColor = Colors.grey.shade600; // Abu-abu untuk role
+    final Color topOrange = const Color(0xFFFFAB91);
+    final Color bottomPeach = const Color(0xFFFFCCBC); 
+    final Color nameColor = const Color(0xFFE64A19); 
+    final Color roleColor = Colors.grey.shade600; 
 
     return Column(
       children: [
@@ -224,38 +222,7 @@ Widget _buildHeader(
                           : const AssetImage('image/profile-default.png')
                               as ImageProvider,
                     ),
-                  ),
-
-                  if (widget.username == null)
-                    GestureDetector(
-                      onTap: () {
-                         // TODO: Navigator.push(context, MaterialPageRoute(builder: (context) => const EditProfilePage()));
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           const SnackBar(content: Text("Buka Halaman Edit Profile"))
-                         );
-                      },
-                      child: Container(
-                        height: 40, 
-                        width: 40,
-                        margin: const EdgeInsets.only(bottom: 5, right: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.edit, 
-                          size: 20, 
-                          color: _primaryOrange, 
-                        ),
-                      ),
-                    ),
+                  ), 
                 ],
               ),
             ),
@@ -269,7 +236,7 @@ Widget _buildHeader(
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.bold,
-            color: nameColor, // Warna merah-oranye
+            color: nameColor,
             letterSpacing: 0.5,
           ),
           textAlign: TextAlign.center,
@@ -277,7 +244,7 @@ Widget _buildHeader(
 
         const SizedBox(height: 8),
 
-        // Username & Role (Gaya baru, digabung jadi satu baris teks)
+        // Username & Role 
         Text(
           "@$username  •  ${role.toUpperCase()}",
           style: TextStyle(
@@ -287,7 +254,35 @@ Widget _buildHeader(
           ),
         ),
 
-        const SizedBox(height: 24), // Jarak sebelum konten berikutnya
+        if (widget.username == null) ...[ // Cuma muncul di profil sendiri
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditProfilePage(userData: _profileData!),
+                ),
+              );
+
+              if (result == true) {
+                _fetchProfile(); // Refresh data setelah edit
+              }
+            },
+            icon: const Icon(Icons.edit, size: 16),
+            label: const Text("Edit Profile"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.black87,
+              side: BorderSide(color: Colors.grey.shade300),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            ),
+          ),
+        ],
+
+        const SizedBox(height: 24),
       ],
     );
   }
@@ -362,14 +357,20 @@ Widget _buildHeader(
           Text(
             (profile['about'] != null && profile['about'] != "-") 
                 ? profile['about'] 
-                : "No description available.", // Ubah ke Inggris
+                : "No description available.", 
             style: TextStyle(color: Colors.grey[600], fontSize: 14, height: 1.5),
           ),
           const SizedBox(height: 20),
           
           if (role == 'participant') ...[
             _buildInfoRow(Icons.location_on, "Location", profile['location'] ?? "-"), 
-            _buildInfoRow(Icons.cake, "Birth Date", profile['birth_date'] ?? "-"),
+            _buildInfoRow(
+              Icons.cake, 
+              "Birth Date", 
+              profile['birth_date'] != null && profile['birth_date'] != "-" && profile['birth_date'].isNotEmpty
+                ? DateFormat('dd/MM/yyyy').format(DateTime.parse(profile['birth_date']))
+                : "-",
+            ),
             _buildInfoRow(Icons.sports_tennis, "Interests", profile['interests'] ?? "-"),
           ] else ...[
             _buildInfoRow(Icons.email, "Email", profile['contact_email'] ?? "-"),
