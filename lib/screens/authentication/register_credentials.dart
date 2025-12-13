@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sportnet/screens/register_profile.dart';
+import 'package:sportnet/screens/authentication/register_profile.dart';
 import 'package:sportnet/widgets/auth_background.dart';
 import 'package:sportnet/widgets/custom_textfield.dart';
-import 'package:sportnet/screens/login_page.dart';
+import 'package:sportnet/screens/authentication/login_page.dart';
 
 class RegisterCredentials extends StatefulWidget {
   final String role;

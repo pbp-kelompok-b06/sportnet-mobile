@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:sportnet/screens/login_page.dart';
+import 'package:sportnet/screens/authentication/login_page.dart';
 import 'package:sportnet/widgets/auth_background.dart';
 import 'package:sportnet/widgets/custom_textfield.dart';
 
@@ -41,22 +41,16 @@ class _RegisterProfileState extends State<RegisterProfile>{
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 17)), // Default umur 17 thn
-      firstDate: DateTime(1950),
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
-        // Kustomisasi warna date picker agar sesuai tema oranye
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFFFF7F50), // Header background color
-              onPrimary: Colors.white, // Header text color
-              onSurface: Colors.black, // Body text color
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFFF7F50), // Button text color
-              ),
+              primary: Color(0xFFFF7F50),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
             ),
           ),
           child: child!,
@@ -64,11 +58,10 @@ class _RegisterProfileState extends State<RegisterProfile>{
       },
     );
 
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        // Ubah format tanggal jadi YYYY-MM-DD untuk ditampilkan di textfield
-        _extraController.text = DateFormat('yyyy-MM-dd').format(picked);
+        _extraController.text = DateFormat('dd/MM/yyyy').format(picked);
       });
     }
   }
@@ -106,7 +99,7 @@ class _RegisterProfileState extends State<RegisterProfile>{
               child: AbsorbPointer(
                 child: CustomTextField(
                   controller: _extraController,
-                  hintText: "Birth Date (YYYY-MM-DD)", 
+                  hintText: "Birth Date (dd/MM/yyyy)", 
                   icon: Icons.calendar_today,
                 ),
               ),

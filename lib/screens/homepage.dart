@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import '../models/models.dart';
 import 'notif_page.dart';
-import 'profile.dart';
+import 'profile/profile.dart';
 import 'package:sportnet/widgets/event_card.dart';
 
 class HomePage extends StatefulWidget {
