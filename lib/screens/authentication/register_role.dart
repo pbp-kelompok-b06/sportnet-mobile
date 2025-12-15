@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sportnet/screens/register_credentials.dart';
+import 'package:sportnet/screens/authentication/register_credentials.dart';
 import 'package:sportnet/widgets/auth_background.dart';
 
 class RegisterRole extends StatelessWidget {
@@ -88,7 +88,7 @@ class RegisterRole extends StatelessWidget {
         );
       },
       child: Container(
-        height: 160, // KUNCI UTAMA: Tinggi fix biar jadi kotak
+        height: 160, 
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -105,7 +105,6 @@ class RegisterRole extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 1. Icon dalam lingkaran
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -116,7 +115,6 @@ class RegisterRole extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             
-            // 2. Judul (Organizer/Participant)
             Text(
               title,
               style: const TextStyle(
@@ -127,7 +125,6 @@ class RegisterRole extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             
-            // 3. Subjudul Kecil
             Text(
               subtitle,
               textAlign: TextAlign.center,
@@ -147,7 +144,7 @@ class RegisterRole extends StatelessWidget {
       width: isActive ? 20 : 10,
       height: 10,
       decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFF7F50) : Colors.grey[300], // Ubah warna dikit biar keliatan di card putih
+        color: isActive ? const Color(0xFFFF7F50) : Colors.grey[300], 
         borderRadius: BorderRadius.circular(10),
       ),
     );
