@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/notifications.dart' as model;
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:sportnet/screens/login_page.dart';
+import 'dart:convert';
+
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -10,33 +15,37 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   // Data notifikasi dipindahkan ke state agar bisa diubah (mutable)
-  static List<model.Notification> _notifications = [
-    model.Notification(
-    id: 1,
-    title: "Event Reminder",
-    message: "Don't forget the Football Cup on Oct 25, 2024!",
-    isRead: false,
-    timestamp: DateTime.now(),
-    eventId: "evt_001",
-  ),   model.Notification(
-    id: 2,
-    title: "New Event Added",
-    message: "Yoga Retreat has been added to your schedule.",
-    isRead: false,
-    timestamp: DateTime.now().subtract(const Duration(days: 1)),
-    eventId: "evt_002",
-  ),    model.Notification(
-    id: 3,
-    title: "Event Update",
-    message: "The Badminton Fun event time has been changed.",
-    isRead: false,
-    timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-    eventId: "evt_003",
-  ),
-  ]; 
+  static List<model.Notification> _notifications = [];
+
+  Future<List<model.Notification>> _fetchNotifications() async {
+    // fetch data notifikasi dari server atau database
+    final request = context.read<CookieRequest>();
+    print(request.loggedIn);
+    final response = await request.get(
+    'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
+  );
+
+    List<model.Notification> list = [];
+    
+    var data = response['notifications'] as List<dynamic>;
+    for (var item in data) {
+      if (item != null) {
+        list.add(model.Notification.fromJson(item));
+      }
+    }
+    _notifications = list; 
+  
+    return list;
+  } 
 
   // Fungsi untuk menandai semua sebagai sudah dibaca
   void _markAllAsRead() {
+    final request = context.read<CookieRequest>();
+    // Kirim request ke server untuk menandai semua sebagai sudah dibaca
+    request.postJson(
+      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/mark-read-all/',
+      jsonEncode(<String, String>{}),
+    );
     setState(() {
       _notifications = _notifications.map((n) {
         return model.Notification(
@@ -52,7 +61,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
   }
 
   // Fungsi untuk menandai satu item sebagai sudah dibaca
-  void _markAsRead(int index) {
+  void _markAsRead(int index) async {
+    final request = context.read<CookieRequest>();
+    final notifId = _notifications[index].id;
+    
     setState(() {
       final old = _notifications[index];
       _notifications[index] = model.Notification(
@@ -64,19 +76,92 @@ class _NotificationsPageState extends State<NotificationsPage> {
         id: old.id,
       );
     });
+    try {
+      final response = await request.postJson(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/flutter-mark-as-read/',
+        jsonEncode(<String, String>{
+          'notif_id': notifId.toString(),
+        }),
+      );
+      
+      if (response['status'] != 'success') {
+         print("Gagal mark read: ${response['message']}");
+      }
+    } catch (e) {
+      print("Error koneksi: $e");
+    }
   }
 
   // Fungsi untuk menghapus notifikasi
-  void _deleteNotification(int index) {
+  void _deleteNotification(int index) async {
+    final request = context.read<CookieRequest>();
+    final notifId = _notifications[index].id;
+
     setState(() {
       _notifications.removeAt(index);
     });
+    try {
+      final response = await request.postJson(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/delete-flutter/',
+        jsonEncode(<String, String>{
+          'notif_id': notifId.toString(),
+        }),
+      );
+
+      print("Delete Status: ${response['status']}");
+      
+      if (response['status'] != 'success') {
+         // Handle jika gagal hapus di server
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal menghapus: ${response['message']}"))
+         );
+      }
+    } catch (e) {
+      print("Error koneksi delete: $e");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final request = context.watch<CookieRequest>();
     const Color primaryOrange = Color(0xFFF0544F);
-
+    if (!request.loggedIn) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Notifications")),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Tampilkan pesan error (opsional, bisa dipersingkat)
+                Text(
+                  "Please log in to view your notifications.",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                      (route) => false,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryOrange,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Login"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,28 +204,56 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
           // --- List ---
           Expanded(
-            child: _notifications.isEmpty
-                ? Center(
+            child: FutureBuilder<List<model.Notification>>(
+              future: _fetchNotifications(), // Panggil fungsi fetch
+              builder: (context, snapshot) {
+                // 1. Tampilkan Loading saat data sedang diambil
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } 
+                
+                // 2. Tampilkan Error jika gagal
+                else if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Error: ${snapshot.error}'),
+                  );
+                } 
+                
+                // 3. Tampilkan pesan jika data kosong
+                else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
                     child: Text(
                       'No notifications',
                       style: TextStyle(color: Colors.grey.shade500),
                     ),
-                  )
-                : ListView.builder(
+                  );
+                } 
+                
+                // 4. Tampilkan Data menggunakan ListView.builder
+                else {
+                  
+                  return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    itemCount: _notifications.length,
+                    itemCount: _notifications.length, // Jumlah item sesuai data
                     itemBuilder: (context, index) {
-                      return _buildNotificationItem(index, primaryOrange);
+                      // Panggil widget item per notifikasi
+                      return _buildNotificationItem(
+                        index,
+                        _notifications[index],
+                        primaryOrange,
+                      );
                     },
-                  ),
+                  );
+                }
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationItem(int index, Color primaryColor) {
-    final notif = _notifications[index];
+  Widget _buildNotificationItem(int index, model.Notification notif, Color primaryColor) {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
@@ -181,8 +294,12 @@ class _NotificationsPageState extends State<NotificationsPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        Expanded(
+
+                        child: Text(
                           notif.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -190,6 +307,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                 ? Colors.black
                                 : Colors.grey.shade800,
                           ),
+                        ),
                         ),
                         Text(
                           notif.timestamp.toLocal().toString().split(' ')[0], // Tampilkan hanya tanggal
@@ -268,22 +386,5 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       ),
     );
-  }
-
-  IconData _getIconForType(String type) {
-    switch (type) {
-      case 'match':
-        return Icons.calendar_today;
-      case 'booking':
-        return Icons.confirmation_number_outlined;
-      case 'offer':
-        return Icons.local_offer_outlined;
-      case 'payment':
-        return Icons.check_circle_outline;
-      case 'friend':
-        return Icons.group_add_outlined;
-      default:
-        return Icons.notifications_none;
-    }
   }
 }

@@ -30,7 +30,7 @@ class BookmarkProvider extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
-  static const String baseUrl = "http://localhost:8000";
+  static const String baseUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id";
 
   Future<void> loadBookmarks(CookieRequest request) async {
     isLoading = true;

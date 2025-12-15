@@ -75,13 +75,12 @@ class _LoginPageState extends State<LoginPage> {
 
                 // 1. GANTI KE POST JSON (Biar gak crash)
                 try {
-                  final response = await request.postJson(
-                      "http://10.0.2.2:8000/authenticate/api/login/", 
-                      jsonEncode(<String, String>{
-                        'username': username,
-                        'password': password,
-                      })
-                  );
+                  final response = await request.login(
+                  "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
+                    jsonEncode({
+                      'username': username,
+                      'password': password,
+                    }));  
 
                   // 2. CEK STATUS SECARA MANUAL
                   if (response['status'] == 'success') {
