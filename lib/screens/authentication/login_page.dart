@@ -81,10 +81,11 @@ class _LoginPageState extends State<LoginPage> {
                 try {
                   final response = await request.login(
                   "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
-                    jsonEncode({
+                    {
                       'username': username,
                       'password': password,
-                    }));  
+                    }
+                  );  
 
                   if (response['status'] == 'success') {
                     
