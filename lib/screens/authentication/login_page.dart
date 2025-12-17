@@ -77,17 +77,6 @@ class _LoginPageState extends State<LoginPage> {
                   );
                   return;
                 }
-
-                final response = await request.postJson(
-                  "http://localhost:8000/authenticate/api/login/", 
-                  {
-                    jsonEncode(<String, String>{
-                        'username': username,
-                        'password': password,
-                      })
-                  }
-                );
-
                 // 1. GANTI KE POST JSON (Biar gak crash)
                 try {
                   final response = await request.login(

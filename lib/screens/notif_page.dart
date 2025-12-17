@@ -1,13 +1,16 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../models/notifications.dart' as model;
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:sportnet/screens/authentication/login_page.dart';
-import 'dart:convert';
-
 
 class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key});
+  final ValueChanged<int>? onUnreadCountChanged;
+
+  const NotificationsPage({super.key, this.onUnreadCountChanged});
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
@@ -16,27 +19,63 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   // Data notifikasi dipindahkan ke state agar bisa diubah (mutable)
   static List<model.Notification> _notifications = [];
+  Future<List<model.Notification>>? _notificationsFuture;
+  Timer? _pollingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationsFuture = _fetchNotifications();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      _refreshNotifications();
+    });
+  }
 
   Future<List<model.Notification>> _fetchNotifications() async {
     // fetch data notifikasi dari server atau database
     final request = context.read<CookieRequest>();
     print(request.loggedIn);
+    if (!request.loggedIn) {
+      _notifications = [];
+      _notifyUnreadCount();
+      return [];
+    }
     final response = await request.get(
-    'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
-  );
+      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
+    );
 
     List<model.Notification> list = [];
-    
+
     var data = response['notifications'] as List<dynamic>;
     for (var item in data) {
       if (item != null) {
         list.add(model.Notification.fromJson(item));
       }
     }
-    _notifications = list; 
-  
+    _notifications = list;
+    _notifyUnreadCount();
+
     return list;
-  } 
+  }
+
+  void _notifyUnreadCount() {
+    widget.onUnreadCountChanged?.call(
+      _notifications.where((n) => !n.isRead).length,
+    );
+  }
+
+  void _refreshNotifications() {
+    if (!mounted) return;
+    setState(() {
+      _notificationsFuture = _fetchNotifications();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
 
   // Fungsi untuk menandai semua sebagai sudah dibaca
   void _markAllAsRead() {
@@ -58,13 +97,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
         );
       }).toList();
     });
+    _notifyUnreadCount();
   }
 
   // Fungsi untuk menandai satu item sebagai sudah dibaca
   void _markAsRead(int index) async {
     final request = context.read<CookieRequest>();
     final notifId = _notifications[index].id;
-    
+
     setState(() {
       final old = _notifications[index];
       _notifications[index] = model.Notification(
@@ -76,16 +116,15 @@ class _NotificationsPageState extends State<NotificationsPage> {
         id: old.id,
       );
     });
+    _notifyUnreadCount();
     try {
       final response = await request.postJson(
         'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/api/read/',
-        jsonEncode(<String, String>{
-          'notif_id': notifId.toString(),
-        }),
+        jsonEncode(<String, String>{'notif_id': notifId.toString()}),
       );
-      
+
       if (response['status'] != 'success') {
-         print("Gagal mark read: ${response['message']}");
+        print("Gagal mark read: ${response['message']}");
       }
     } catch (e) {
       print("Error koneksi: $e");
@@ -100,21 +139,20 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() {
       _notifications.removeAt(index);
     });
+    _notifyUnreadCount();
     try {
       final response = await request.postJson(
         'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/api/delete/',
-        jsonEncode(<String, String>{
-          'notif_id': notifId.toString(),
-        }),
+        jsonEncode(<String, String>{'notif_id': notifId.toString()}),
       );
 
       print("Delete Status: ${response['status']}");
-      
+
       if (response['status'] != 'success') {
-         // Handle jika gagal hapus di server
-         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Gagal menghapus: ${response['message']}"))
-         );
+        // Handle jika gagal hapus di server
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Gagal menghapus: ${response['message']}")),
+        );
       }
     } catch (e) {
       print("Error koneksi delete: $e");
@@ -141,12 +179,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   style: const TextStyle(color: Colors.red),
                 ),
                 const SizedBox(height: 8),
-                
+
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
                       (route) => false,
                     );
                   },
@@ -205,20 +245,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
           // --- List ---
           Expanded(
             child: FutureBuilder<List<model.Notification>>(
-              future: _fetchNotifications(), // Panggil fungsi fetch
+              future: _notificationsFuture,
               builder: (context, snapshot) {
                 // 1. Tampilkan Loading saat data sedang diambil
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
-                } 
-                
+                }
                 // 2. Tampilkan Error jika gagal
                 else if (snapshot.hasError) {
-                  return Center(
-                    child: Text('Error: ${snapshot.error}'),
-                  );
-                } 
-                
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
                 // 3. Tampilkan pesan jika data kosong
                 else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return Center(
@@ -227,11 +263,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       style: TextStyle(color: Colors.grey.shade500),
                     ),
                   );
-                } 
-                
+                }
                 // 4. Tampilkan Data menggunakan ListView.builder
                 else {
-                  
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     itemCount: _notifications.length, // Jumlah item sesuai data
@@ -253,8 +287,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  Widget _buildNotificationItem(int index, model.Notification notif, Color primaryColor) {
-
+  Widget _buildNotificationItem(
+    int index,
+    model.Notification notif,
+    Color primaryColor,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       padding: const EdgeInsets.all(12.0),
@@ -295,22 +332,23 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-
-                        child: Text(
-                          notif.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: !notif.isRead
-                                ? Colors.black
-                                : Colors.grey.shade800,
+                          child: Text(
+                            notif.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: !notif.isRead
+                                  ? Colors.black
+                                  : Colors.grey.shade800,
+                            ),
                           ),
                         ),
-                        ),
                         Text(
-                          notif.timestamp.toLocal().toString().split(' ')[0], // Tampilkan hanya tanggal
+                          notif.timestamp.toLocal().toString().split(
+                            ' ',
+                          )[0], // Tampilkan hanya tanggal
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade500,
