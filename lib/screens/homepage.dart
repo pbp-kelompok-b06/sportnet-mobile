@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
@@ -16,17 +18,73 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  static const Color _primaryOrange = Color(0xFFF0544F);
 
-  final List<Widget> _pages = [
-    const HomeContent(),
-    ChangeNotifierProvider(
-      create: (_) => BookmarkProvider(),
-      child: const BookmarkPage(),
-    ),
-    const NotificationsPage(),
-    const ProfilePage(),
-  ];
+  int _selectedIndex = 0;
+  int _unreadCount = 0;
+  Timer? _pollingTimer;
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomeContent(),
+      ChangeNotifierProvider(
+        create: (_) => BookmarkProvider(),
+        child: const BookmarkPage(),
+      ),
+      NotificationsPage(onUnreadCountChanged: _handleUnreadCountChanged),
+      const ProfilePage(),
+    ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshUnreadCount();
+    });
+
+    _pollingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      _refreshUnreadCount();
+    });
+  }
+
+  void _handleUnreadCountChanged(int count) {
+    if (!mounted) return;
+    setState(() {
+      _unreadCount = count;
+    });
+  }
+
+  Future<void> _refreshUnreadCount() async {
+    try {
+      final request = context.read<CookieRequest>();
+      if (!request.loggedIn) {
+        _handleUnreadCountChanged(0);
+        return;
+      }
+
+      final response = await request.get(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
+      );
+
+      List<dynamic>? data;
+      if (response is Map && response['notifications'] is List) {
+        data = response['notifications'] as List<dynamic>;
+      }
+
+      if (data == null) return;
+
+      final unread = data.where((item) {
+        if (item is Map && item['is_read'] != null) {
+          return item['is_read'] == false;
+        }
+        return false;
+      }).length;
+
+      _handleUnreadCountChanged(unread);
+    } catch (e) {
+      // Biarkan badge tidak berubah jika terjadi error
+      debugPrint('Failed to refresh unread notifications: $e');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -35,37 +93,41 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    const Color primaryOrange = Color(0xFFF0544F);
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
+        items: <BottomNavigationBarItem>[
+          const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: '',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.bookmark_outline),
             activeIcon: Icon(Icons.bookmark),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.notifications_none),
-            activeIcon: Icon(Icons.notifications),
+            icon: _buildNotificationIcon(isActive: false),
+            activeIcon: _buildNotificationIcon(isActive: true),
             label: '',
           ),
-          BottomNavigationBarItem(
+          const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
             label: '',
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: primaryOrange,
+        selectedItemColor: _primaryOrange,
         unselectedItemColor: Colors.grey[500],
         showSelectedLabels: false,
         showUnselectedLabels: false,
@@ -74,6 +136,42 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.white,
         elevation: 10,
       ),
+    );
+  }
+
+  Widget _buildNotificationIcon({required bool isActive}) {
+    final icon = isActive ? Icons.notifications : Icons.notifications_none;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        if (_unreadCount > 0)
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 6.0,
+                vertical: 2.0,
+              ),
+              decoration: BoxDecoration(
+                color: _primaryOrange,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(
+                _unreadCount > 99 ? '99+' : '$_unreadCount',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -106,8 +204,10 @@ class _HomeContentState extends State<HomeContent> {
     try {
       // Mengambil instance CookieRequest dari Provider
       final request = context.read<CookieRequest>();
-      
-      final response = await request.get('https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/');
+
+      final response = await request.get(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
+      );
       print(request.loggedIn);
       List<dynamic> data = [];
 
@@ -117,7 +217,7 @@ class _HomeContentState extends State<HomeContent> {
       } else if (response is Map && response.containsKey('events')) {
         data = response['events'];
       } else if (response is Map) {
-         throw Exception("Format data tidak dikenali: $response");
+        throw Exception("Format data tidak dikenali: $response");
       }
 
       // Konversi JSON ke List<Event>
@@ -154,10 +254,18 @@ class _HomeContentState extends State<HomeContent> {
     } else {
       // Filter berdasarkan nama, kategori, atau lokasi
       results = _events
-          .where((event) =>
-              event.name.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
-              event.sportsCategory.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
-              event.location.toLowerCase().contains(enteredKeyword.toLowerCase()))
+          .where(
+            (event) =>
+                event.name.toLowerCase().contains(
+                  enteredKeyword.toLowerCase(),
+                ) ||
+                event.sportsCategory.toLowerCase().contains(
+                  enteredKeyword.toLowerCase(),
+                ) ||
+                event.location.toLowerCase().contains(
+                  enteredKeyword.toLowerCase(),
+                ),
+          )
           .toList();
     }
 
@@ -199,16 +307,16 @@ class _HomeContentState extends State<HomeContent> {
               ],
             ),
             const SizedBox(height: 32),
-            SearchInput(
-              onChanged: _runFilter, 
-            ),
+            SearchInput(onChanged: _runFilter),
             const SizedBox(height: 24),
 
             // TAMPILAN KONTEN BERDASARKAN STATE
             if (_isLoading)
-              const Center(child: CircularProgressIndicator(color: primaryOrange))
+              const Center(
+                child: CircularProgressIndicator(color: primaryOrange),
+              )
             else if (_errorMessage != null)
-               Center(
+              Center(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Text(
@@ -219,7 +327,12 @@ class _HomeContentState extends State<HomeContent> {
                 ),
               )
             else if (_events.isEmpty)
-              const Center(child: Text('Tidak ada event ditemukan.', style: TextStyle(color: Colors.grey)))
+              const Center(
+                child: Text(
+                  'Tidak ada event ditemukan.',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              )
             else
               GridView.builder(
                 shrinkWrap: true,
@@ -264,8 +377,8 @@ class PlaceholderWidget extends StatelessWidget {
 
 class SearchInput extends StatelessWidget {
   // Tambahkan callback function
-  final ValueChanged<String> onChanged; 
-  const SearchInput({super.key, required this.onChanged}); 
+  final ValueChanged<String> onChanged;
+  const SearchInput({super.key, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +401,8 @@ class SearchInput extends StatelessWidget {
           Expanded(
             child: TextField(
               onChanged: onChanged, // Panggil fungsi saat teks berubah
-              decoration: const InputDecoration( // Tambahkan const di sini
+              decoration: const InputDecoration(
+                // Tambahkan const di sini
                 hintText: 'Search sports, categories, places',
                 hintStyle: TextStyle(color: Colors.grey),
                 border: InputBorder.none,
