@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -77,25 +76,15 @@ class _LoginPageState extends State<LoginPage> {
                   );
                   return;
                 }
-
-                final response = await request.postJson(
-                  "http://localhost:8000/authenticate/api/login/", 
-                  {
-                    jsonEncode(<String, String>{
-                        'username': username,
-                        'password': password,
-                      })
-                  }
-                );
-
                 // 1. GANTI KE POST JSON (Biar gak crash)
                 try {
                   final response = await request.login(
                   "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
-                    jsonEncode({
+                    {
                       'username': username,
                       'password': password,
-                    }));  
+                    }
+                  );  
 
                   // 2. CEK STATUS SECARA MANUAL
                   if (response['status'] == 'success') {
