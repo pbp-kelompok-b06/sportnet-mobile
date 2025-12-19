@@ -76,7 +76,6 @@ class _LoginPageState extends State<LoginPage> {
                   );
                   return;
                 }
-                // 1. GANTI KE POST JSON (Biar gak crash)
                 try {
                   final response = await request.login(
                   "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
@@ -86,7 +85,6 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   );  
 
-                  // 2. CEK STATUS SECARA MANUAL
                   if (response['status'] == 'success') {
                     
                     // Sukses
@@ -107,7 +105,6 @@ class _LoginPageState extends State<LoginPage> {
                     }
 
                   } else {
-                    // Gagal (Password salah, dll)
                     if (context.mounted) {
                       showDialog(
                         context: context,
@@ -125,7 +122,6 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   }
                 } catch (e) {
-                    // Error Koneksi (Server mati / Internet putus)
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Terjadi kesalahan: $e")),

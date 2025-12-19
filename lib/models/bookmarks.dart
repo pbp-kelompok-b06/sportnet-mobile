@@ -38,15 +38,29 @@ class BookmarkProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await request.get(
-        '$baseUrl/bookmark/api/bookmarks/',
-      );
+      // belum login
+      if (!request.loggedIn) {
+        bookmarks = [];
+        errorMessage = "You are not logged in.";
+        return;
+      }
 
-      final list = (response['bookmarks'] as List)
+      final response = await request.get('$baseUrl/bookmark/api/bookmarks/');
+      final raw = response['bookmarks'];
+      if (raw == null) {
+        errorMessage = "Unexpected response: $response";
+        bookmarks = [];
+        return;
+      }
+      if (raw is! List) {
+        errorMessage = "Unexpected bookmarks type: ${raw.runtimeType}";
+        bookmarks = [];
+        return;
+      }
+
+      bookmarks = raw
           .map((e) => Bookmark.fromJson(e as Map<String, dynamic>))
           .toList();
-
-      bookmarks = list;
     } catch (e) {
       errorMessage = e.toString();
     } finally {
