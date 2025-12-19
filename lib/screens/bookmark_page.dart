@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 
 import '../models/bookmarks.dart';
+import '../screens/authentication/login_page.dart';
 
 class BookmarkPage extends StatefulWidget {
   const BookmarkPage({super.key});
@@ -17,9 +18,21 @@ class _BookmarkPageState extends State<BookmarkPage> {
   void initState() {
     super.initState();
     // load data setelah build pertama
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       final request = context.read<CookieRequest>();
-      context.read<BookmarkProvider>().loadBookmarks(request);
+
+      // belum login -> redirect ke log
+      if (!request.loggedIn) {
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginPage()),
+        );
+        return;
+      }
+
+      // sudah login -> load bookmarks
+      await context.read<BookmarkProvider>().loadBookmarks(request);
     });
   }
 
