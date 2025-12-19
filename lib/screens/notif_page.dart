@@ -18,44 +18,52 @@ class NotificationsPage extends StatefulWidget {
 
 class _NotificationsPageState extends State<NotificationsPage> {
   // Data notifikasi dipindahkan ke state agar bisa diubah (mutable)
-  static List<model.Notification> _notifications = [];
-  Future<List<model.Notification>>? _notificationsFuture;
+  List<model.Notification> _notifications = [];
+  bool _isLoading = true;
   Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
-    _notificationsFuture = _fetchNotifications();
+    _fetchNotifications();
     _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       _refreshNotifications();
     });
   }
 
-  Future<List<model.Notification>> _fetchNotifications() async {
-    // fetch data notifikasi dari server atau database
-    final request = context.read<CookieRequest>();
-    print(request.loggedIn);
-    if (!request.loggedIn) {
-      _notifications = [];
-      _notifyUnreadCount();
-      return [];
-    }
-    final response = await request.get(
-      'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
-    );
+  Future<void> _fetchNotifications() async {
+    try {
+      // fetch data notifikasi dari server atau database
+      final request = context.read<CookieRequest>();
+      print(request.loggedIn);
+      
+      final response = await request.get(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
+      );
 
-    List<model.Notification> list = [];
+      List<model.Notification> list = [];
 
-    var data = response['notifications'] as List<dynamic>;
-    for (var item in data) {
-      if (item != null) {
-        list.add(model.Notification.fromJson(item));
+      var data = response['notifications'] as List<dynamic>;
+      for (var item in data) {
+        if (item != null) {
+          list.add(model.Notification.fromJson(item));
+        }
+      }
+      if (mounted) {
+        setState(() {
+          _notifications = list;
+          _isLoading = false;
+        });
+        _notifyUnreadCount();
+      }
+    } catch (e) {
+      print("Error fetching notifications: $e");
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
-    _notifications = list;
-    _notifyUnreadCount();
-
-    return list;
   }
 
   void _notifyUnreadCount() {
@@ -64,11 +72,32 @@ class _NotificationsPageState extends State<NotificationsPage> {
     );
   }
 
-  void _refreshNotifications() {
+  void _refreshNotifications() async {
     if (!mounted) return;
-    setState(() {
-      _notificationsFuture = _fetchNotifications();
-    });
+    // Refresh di background tanpa loading indicator
+    try {
+      final request = context.read<CookieRequest>();
+      final response = await request.get(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
+      );
+
+      List<model.Notification> list = [];
+      var data = response['notifications'] as List<dynamic>;
+      for (var item in data) {
+        if (item != null) {
+          list.add(model.Notification.fromJson(item));
+        }
+      }
+      
+      if (mounted) {
+        setState(() {
+          _notifications = list;
+        });
+        _notifyUnreadCount();
+      }
+    } catch (e) {
+      print("Error refreshing notifications: $e");
+    }
   }
 
   @override
@@ -244,43 +273,26 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
           // --- List ---
           Expanded(
-            child: FutureBuilder<List<model.Notification>>(
-              future: _notificationsFuture,
-              builder: (context, snapshot) {
-                // 1. Tampilkan Loading saat data sedang diambil
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                // 2. Tampilkan Error jika gagal
-                else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                // 3. Tampilkan pesan jika data kosong
-                else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No notifications',
-                      style: TextStyle(color: Colors.grey.shade500),
-                    ),
-                  );
-                }
-                // 4. Tampilkan Data menggunakan ListView.builder
-                else {
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    itemCount: _notifications.length, // Jumlah item sesuai data
-                    itemBuilder: (context, index) {
-                      // Panggil widget item per notifikasi
-                      return _buildNotificationItem(
-                        index,
-                        _notifications[index],
-                        primaryOrange,
-                      );
-                    },
-                  );
-                }
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _notifications.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No notifications',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: _notifications.length,
+                        itemBuilder: (context, index) {
+                          return _buildNotificationItem(
+                            index,
+                            _notifications[index],
+                            primaryOrange,
+                          );
+                        },
+                      ),
           ),
         ],
       ),
