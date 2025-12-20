@@ -9,8 +9,6 @@ import 'profile/profile.dart';
 import 'package:sportnet/widgets/event_card.dart';
 import 'package:sportnet/models/bookmarks.dart';
 import 'bookmark_page.dart';
-import 'package:sportnet/screens/event_detail_page.dart';
-
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -208,7 +206,7 @@ class _HomeContentState extends State<HomeContent> {
       final request = context.read<CookieRequest>();
 
       final response = await request.get(
-        'http://127.0.0.1:8000/event/json/',
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
       );
       print(request.loggedIn);
       List<dynamic> data = [];
@@ -348,23 +346,7 @@ class _HomeContentState extends State<HomeContent> {
                   childAspectRatio: 1.5,
                 ),
                 itemBuilder: (context, index) {
-                  final event = _filteredEvents[index];
-
-                  return GestureDetector(
-
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => EventDetailPage(
-                            eventId: event.uuid,
-                            eventName: event.name,
-                          ),
-                        ),
-                      );
-                    },
-                    child: EventCard(event: event),
-                  );
+                  return EventCard(event: _filteredEvents[index]);
                 },
               ),
 

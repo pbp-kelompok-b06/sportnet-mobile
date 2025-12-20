@@ -6,7 +6,6 @@ import 'package:sportnet/widgets/auth_background.dart';
 import 'package:sportnet/screens/authentication/register.dart';
 import 'package:sportnet/screens/profile/create_profile.dart';
 import 'package:sportnet/widgets/custom_textfield.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -24,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final request = context.read<CookieRequest>();
+    final request = context.watch<CookieRequest>();
 
     return AuthBackground(
       title: "Sign In",
@@ -32,15 +31,12 @@ class _LoginPageState extends State<LoginPage> {
       imagePath: 'assets/image/login_bg.jpg',
       child: Column(
         children: [
-          // Username
           CustomTextField(
             controller: _usernameController,
             hintText: 'Enter your username',
             icon: Icons.person_outline,
           ),
           const SizedBox(height: 20),
-
-          // Password
           CustomTextField(
             controller: _passwordController,
             hintText: "Enter your password",
@@ -50,9 +46,7 @@ class _LoginPageState extends State<LoginPage> {
               padding: const EdgeInsets.only(right: 12.0),
               child: IconButton(
                 icon: Icon(
-                  _isPasswordVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off,
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                   color: Colors.grey,
                 ),
                 onPressed: () {
@@ -64,78 +58,77 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
           const SizedBox(height: 40),
-
-          // Sign In Button
           SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: () async {
-                final username = _usernameController.text.trim();
-                final password = _passwordController.text;
+                String username = _usernameController.text;
+                String password = _passwordController.text;
 
                 if (username.isEmpty || password.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Username dan password harus diisi!"),
-                    ),
+                    const SnackBar(content: Text("Username dan password harus diisi!")),
                   );
                   return;
                 }
-
                 try {
-                  // === LOGIN KE DJANGO (SESSION BASED) ===
                   final response = await request.login(
-                    "http://127.0.0.1:8000/authenticate/api/login/",
+                    "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/",
                     {
                       'username': username,
                       'password': password,
                     },
                   );
 
-                  if (response['status'] == 'success') {
-                    // === SIMPAN USERNAME (PENTING) ===
-                    final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('username', username);
+                  if (response['status'] == true) {
+                    String message = response['message'];
+                    String uname = response['username'];
+                    bool profileExists = response['profile_exists'] ?? false;
 
-                    if (!context.mounted) return;
-
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const HomePage(),
-                      ),
-                    );
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          "Login berhasil. Selamat datang, $username!",
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("$message Selamat datang, $uname."),
+                          backgroundColor: Colors.green,
                         ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                      );
+
+                      if (profileExists) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HomePage()),
+                        );
+                      } else {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (context) => const CreateProfilePage()),
+                        );
+                      }
+                    }
                   } else {
-                    if (!context.mounted) return;
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          response['message'] ?? "Login gagal.",
+                    if (context.mounted) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Login Gagal'),
+                          content: Text(response['message'] ?? "Cek username/password."),
+                          actions: [
+                            TextButton(
+                              child: const Text('OK'),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
                         ),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                      );
+                    }
                   }
                 } catch (e) {
-                  if (!context.mounted) return;
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Login error: $e"),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Terjadi kesalahan: $e")),
+                    );
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -153,10 +146,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // Register link
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -166,12 +156,7 @@ class _LoginPageState extends State<LoginPage> {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RegisterRole(),
-                    ),
-                  );
+                   Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage())); 
                 },
                 child: Text(
                   "Register Now",
