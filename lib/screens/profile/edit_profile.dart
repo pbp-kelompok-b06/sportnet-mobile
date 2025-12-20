@@ -226,19 +226,18 @@ Future<void> _pickImage() async {
                         backgroundColor: Colors.grey[200],
                         backgroundImage: _imageBase64 != null
                           ? MemoryImage(base64Decode(_imageBase64!))
-                          
-                          : (widget.userData['profile']['profile_picture'] != null &&
-                            widget.userData['profile']['profile_picture'].isNotEmpty
+                          : ((widget.userData['profile']['profile_picture'] ?? "").isNotEmpty 
                               ? NetworkImage(
-                                  'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/${widget.userData['profile']['profile_picture']}',
+                                  'https://anya-aleena-sportnet.pbp.cs.ui.ac.id${widget.userData['profile']['profile_picture']}',
                                 )
-                              : const AssetImage('image/profile-default.png'))
+                              : const AssetImage('assets/image/profile-default.png')) 
                           as ImageProvider,
                           
-                      child: (_imageBase64 == null && widget.userData['profile']['profile_picture'].isEmpty)
-                        ? Icon(Icons.camera_alt, color: Colors.deepOrange) 
-                        : null,
-                      )
+                      child: (_imageBase64 == null && 
+                              (widget.userData['profile']['profile_picture'] ?? "").isEmpty)
+                          ? const Icon(Icons.camera_alt, color: Colors.deepOrange)
+                          : null,
+                    ),
                     ),
                     Container(
                       padding: const EdgeInsets.all(8),
@@ -284,7 +283,6 @@ Future<void> _pickImage() async {
               _buildLabel("Interests"),
               CustomTextField(controller: _interestsController, hintText: "e.g. Running, Padel, Yoga", icon: Icons.sports_tennis),
             ] else ...[
-              // FORM ORGANIZER
               _buildLabel("Organizer Name"),
               CustomTextField(controller: _nameController, hintText: "Organizer / Community Name", icon: Icons.groups),
               
