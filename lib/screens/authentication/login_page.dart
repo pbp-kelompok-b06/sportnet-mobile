@@ -76,7 +76,6 @@ class _LoginPageState extends State<LoginPage> {
                   );
                   return;
                 }
-
                 try {
                   final response = await request.login(
                   "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/", 
@@ -123,7 +122,6 @@ class _LoginPageState extends State<LoginPage> {
                     }
                   }
                 } catch (e) {
-                    // Error Koneksi (Server mati / Internet putus)
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text("Terjadi kesalahan: $e")),
