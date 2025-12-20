@@ -3,7 +3,8 @@ import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:sportnet/screens/homepage.dart';
 import 'package:sportnet/widgets/auth_background.dart';
-import 'package:sportnet/screens/authentication/register_role.dart';
+import 'package:sportnet/screens/authentication/register.dart';
+import 'package:sportnet/screens/profile/create_profile.dart';
 import 'package:sportnet/widgets/custom_textfield.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
