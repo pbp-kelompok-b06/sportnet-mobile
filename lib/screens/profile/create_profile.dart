@@ -24,6 +24,10 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
   DateTime? _selectedDate;
   bool _isLoading = false;
 
+  String? _nameError;
+  String? _secInfoError; 
+  String? _dateError;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -56,8 +60,40 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
       setState(() {
         _selectedDate = picked;
         _dateController.text = DateFormat('dd/MM/yyyy').format(picked);
+        _dateError = null;
       });
     }
+  }
+
+  bool _validateInputs() {
+    bool isValid = true;
+    setState(() {
+      if (_nameController.text.trim().isEmpty) {
+        _nameError = _selectedRole == 'organizer' 
+            ? "Organizer Name is required" 
+            : "Full Name is required";
+        isValid = false;
+      } else {
+        _nameError = null;
+      }
+
+      if (_locationEmailController.text.trim().isEmpty) {
+        _secInfoError = _selectedRole == 'organizer' 
+            ? "Contact Email is required" 
+            : "Location is required";
+        isValid = false;
+      } else {
+        _secInfoError = null;
+      }
+
+      if (_selectedRole == 'participant' && _selectedDate == null) {
+        _dateError = "Birth Date is required";
+        isValid = false;
+      } else {
+        _dateError = null;
+      }
+    });
+    return isValid;
   }
 
   @override
@@ -70,20 +106,20 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
     IconData secIcon = _selectedRole == 'organizer' ? Icons.email : Icons.location_city;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFDFDFD), 
-      body: SafeArea( 
+      backgroundColor: const Color(0xFFFDFDFD),
+      body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24), 
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 70), 
+              const SizedBox(height: 70),
 
               const Text(
                 "Create Profile",
                 style: TextStyle(
-                  color: Colors.black, 
-                  fontWeight: FontWeight.bold, 
-                  fontSize: 28, 
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
                 ),
               ),
               const SizedBox(height: 10),
@@ -92,102 +128,110 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
                 "Complete your details to get started.",
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
-              const SizedBox(height: 40), 
+              const SizedBox(height: 40),
 
               const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Choose your role",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Colors.black87,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Choose your role",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 10),
+              const SizedBox(height: 10),
 
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: const Color(0xFFFF7F50), width: 1.5), 
-                borderRadius: BorderRadius.circular(15), 
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFF7F50).withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedRole,
-                  isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFF7F50)),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'participant',
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.person, color: Color(0xFFFF7F50), size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            "Participant",
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                          ),
-                        ],
-                      ),
-                    ),
-                    DropdownMenuItem(
-                      value: 'organizer',
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.groups, color: Color(0xFFFF7F50), size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            "Event Organizer",
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                          ),
-                        ],
-                      ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: const Color(0xFFFF7F50), width: 1.5),
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFFF7F50).withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
                     ),
                   ],
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _selectedRole = newValue!;
-                      // Reset logic
-                      _nameController.clear();
-                      _locationEmailController.clear();
-                      _dateController.clear();
-                      _selectedDate = null;
-                    });
-                  },
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedRole,
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFFFF7F50)),
+                    items: [
+                      DropdownMenuItem(
+                        value: 'participant',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.person, color: Color(0xFFFF7F50), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              "Participant",
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'organizer',
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.groups, color: Color(0xFFFF7F50), size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              "Event Organizer",
+                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        _selectedRole = newValue!;
+                        // Reset semua input & error saat ganti role
+                        _nameController.clear();
+                        _locationEmailController.clear();
+                        _dateController.clear();
+                        _selectedDate = null;
+                        
+                        _nameError = null;
+                        _secInfoError = null;
+                        _dateError = null;
+                      });
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 30),
+              const SizedBox(height: 30),
 
               CustomTextField(
                 controller: _nameController,
                 label: nameLabel,
                 hintText: "Enter name",
                 icon: _selectedRole == 'organizer' ? Icons.groups : Icons.person,
+                errorText: _nameError, 
+                onChanged: (val) {
+                   if (_nameError != null) setState(() => _nameError = null);
+                },
               ),
               const SizedBox(height: 20),
 
@@ -197,6 +241,10 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
                 hintText: secHint,
                 icon: secIcon,
                 keyboardType: _selectedRole == 'organizer' ? TextInputType.emailAddress : TextInputType.text,
+                errorText: _secInfoError, 
+                onChanged: (val) {
+                   if (_secInfoError != null) setState(() => _secInfoError = null);
+                },
               ),
               const SizedBox(height: 20),
 
@@ -210,69 +258,65 @@ class _CreateProfilePageState extends State<CreateProfilePage> {
                       hintText: "dd/mm/yyyy",
                       icon: Icons.calendar_today,
                       suffixIcon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                    ),
+                      errorText: _dateError, 
+                    )
                   ),
                 ),
                 const SizedBox(height: 20),
               ],
 
-              const SizedBox(height: 40), 
+              const SizedBox(height: 40),
 
               SizedBox(
                 width: double.infinity,
-                height: 55, 
+                height: 55,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : () async {
-                      if (_nameController.text.isEmpty || _locationEmailController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mohon lengkapi data utama.")));
-                        return;
-                      }
-                      if (_selectedRole == 'participant' && _selectedDate == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Tanggal lahir wajib diisi.")));
-                        return;
-                      }
+                    if (!_validateInputs()) {
+                      return; 
+                    }
 
-                      setState(() => _isLoading = true);
+                    setState(() => _isLoading = true);
 
-                      Map<String, dynamic> data = {
-                        'role': _selectedRole,
-                        'about': '-',
-                      };
+                    Map<String, dynamic> data = {
+                      'role': _selectedRole,
+                      'about': '-',
+                    };
 
-                      if (_selectedRole == 'participant') {
-                        data['full_name'] = _nameController.text;
-                        data['location'] = _locationEmailController.text;
-                        data['birth_date'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
-                        data['interests'] = '-';
-                      } else {
-                        data['organizer_name'] = _nameController.text;
-                        data['contact_email'] = _locationEmailController.text;
-                        data['contact_phone'] = '-';
-                      }
+                    if (_selectedRole == 'participant') {
+                      data['full_name'] = _nameController.text;
+                      data['location'] = _locationEmailController.text;
+                      data['birth_date'] = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+                      data['interests'] = '-';
+                    } else {
+                      data['organizer_name'] = _nameController.text;
+                      data['contact_email'] = _locationEmailController.text;
+                      data['contact_phone'] = '-';
+                    }
 
-                      try {
-                        final response = await request.postJson(
-                          "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/profile/api/create/",
-                          jsonEncode(data),
-                        );
+                    try {
+                      final response = await request.postJson(
+                        "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/profile/api/create/",
+                        jsonEncode(data),
+                      );
 
-                        if (context.mounted) {
-                          if (response['status'] == 'success') {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => const HomePage()),
-                              (route) => false,
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Welcome to SportNet!"), backgroundColor: Colors.green));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? "Failed"), backgroundColor: Colors.red));
-                          }
+                      if (context.mounted) {
+                        if (response['status'] == 'success') {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (context) => const HomePage()),
+                            (route) => false,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Welcome to SportNet!"), backgroundColor: Colors.green));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'] ?? "Failed"), backgroundColor: Colors.red));
                         }
-                      } catch (e) {
-                        if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-                      } finally {
-                        setState(() => _isLoading = false);
                       }
+                    } catch (e) {
+                      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                    } finally {
+                      setState(() => _isLoading = false);
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFF7F50),
