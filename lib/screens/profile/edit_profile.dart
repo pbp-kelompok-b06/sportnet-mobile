@@ -27,6 +27,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   DateTime? _selectedDate;
   bool _isLoading = false;
+  String? _nameErrorText;
 
   @override
   void initState() {
@@ -112,6 +113,15 @@ Future<void> _pickImage() async {
 }
 
   Future<void> _saveProfile() async {
+    if (_nameController.text.trim().isEmpty) {
+      setState(() {
+        final role = widget.userData['user']['role'];
+        _nameErrorText = role == 'participant' 
+            ? "Full Name cannot be empty!" 
+            : "Organizer Name cannot be empty!";
+      });
+      return; 
+    }
     setState(() => _isLoading = true);
     final request = context.read<CookieRequest>();
     final role = widget.userData['user']['role'];
@@ -256,7 +266,12 @@ Future<void> _pickImage() async {
 
             if (role == 'participant') ...[
               _buildLabel("Full Name"),
-              CustomTextField(controller: _nameController, hintText: "Enter full name", icon: Icons.person),
+              CustomTextField(controller: _nameController, hintText: "Enter full name", icon: Icons.person, errorText: _nameErrorText, onChanged: (val) {
+
+                if (_nameErrorText != null) {
+                    setState(() => _nameErrorText = null);
+                }
+            },),
               
               const SizedBox(height: 16),
               

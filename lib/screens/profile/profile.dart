@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:sportnet/screens/homepage.dart';
 import 'package:sportnet/screens/authentication/login_page.dart';
 import 'package:sportnet/screens/profile/edit_profile.dart';
+import 'package:sportnet/widgets/user_list.dart';
 import 'package:intl/intl.dart';
 
 
@@ -20,6 +21,8 @@ class _ProfilePageState extends State<ProfilePage> {
   // Variabel State
   Map<String, dynamic>? _profileData;
   bool _isLoading = true;
+  bool _isFollowing = false;
+  int _followerCount = 0;
 
   @override
   void initState() {
@@ -65,6 +68,14 @@ class _ProfilePageState extends State<ProfilePage> {
         setState(() {
           _profileData = response;
           _isLoading = false;
+
+          if(response['is_following'] != null){
+            _isFollowing = response['is_following'];
+          }
+
+          if (response['profile']['stats'] != null) {
+            _followerCount = response['profile']['stats']['followers_count'] ?? 0;
+          }
         });
     } catch (e) {
       if (mounted) {
@@ -76,6 +87,48 @@ class _ProfilePageState extends State<ProfilePage> {
       }
     }
   }
+
+  Future<void> _toggleFollow() async {
+  final request = context.read<CookieRequest>();
+  final organizerId = _profileData!['user']['id'];
+
+  String url = _isFollowing
+      ? "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow/$organizerId/unfollow/"
+      : "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow/$organizerId/follow/";
+
+  try {
+    final response = await request.post(url, {});
+    
+    if (!mounted) return; 
+
+      if (response['status'] == 'success') {
+        setState(() {
+          _isFollowing = !_isFollowing;
+          if (_isFollowing) {
+            _followerCount++;
+          } else {
+            _followerCount--;
+          }
+
+          if (_profileData!['profile']['stats'] != null) {
+             _profileData!['profile']['stats']['followers_count'] = _followerCount;
+          }
+        });
+      
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(response['message']),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 1),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(response['message'])));
+    }
+  } catch (e) {
+    if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal terhubung ke server")));
+      }
+  }
+}
   
   @override
   Widget build(BuildContext context){
@@ -152,7 +205,7 @@ class _ProfilePageState extends State<ProfilePage> {
 // widgets builder
 
 Widget _buildHeader(
-      String name, String username, String role, String imageUrl) {
+    String name, String username, String role, String imageUrl) {
     final Color topOrange = const Color(0xFFFFAB91);
     final Color bottomPeach = const Color(0xFFFFCCBC); 
     final Color nameColor = const Color(0xFFE64A19); 
@@ -254,9 +307,10 @@ Widget _buildHeader(
           ),
         ),
 
-        if (widget.username == null) ...[ // Cuma muncul di profil sendiri
+        if (widget.username == null) ...[ 
           const SizedBox(height: 16),
-          OutlinedButton.icon(
+
+          ElevatedButton.icon(
             onPressed: () async {
               final result = await Navigator.push(
                 context,
@@ -266,18 +320,16 @@ Widget _buildHeader(
               );
 
               if (result == true) {
-                _fetchProfile(); // Refresh data setelah edit
+                _fetchProfile(); 
               }
             },
-            icon: const Icon(Icons.edit, size: 16),
+            icon: const Icon(Icons.edit, size: 20),
             label: const Text("Edit Profile"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black87,
-              side: BorderSide(color: Colors.grey.shade300),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF7F50), 
+              foregroundColor: Colors.white,
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
           ),
         ],
@@ -288,55 +340,64 @@ Widget _buildHeader(
   }
   
 
-  Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
-    String label = role == 'organizer' ? "Followers" : "Following";
-    int count = role == 'organizer' ? stats['followers_count'] : stats['following_count'];
+Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded( 
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                   label.toUpperCase(), 
-                   style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                   overflow: TextOverflow.ellipsis,
-                   maxLines: 1,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                   "$count", 
-                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                   overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          
-          const SizedBox(width: 8),
+  String label;
+  int count;
+  String titleDialog;
+  String urlEndpoint;
 
-          // Tombol Chevron
-          CircleAvatar(
-            backgroundColor: Colors.grey[100],
-            radius: 16,
-            child: const Icon(Icons.chevron_right, color: Colors.grey),
-          )
-        ],
-      ),
-    );
+  if (role == 'participant') {
+    label = "Following";
+    count = stats['following_count'] ?? 0;
+    titleDialog = "Following";
+    urlEndpoint = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow/following/";
+  } else {
+    label = "Followers";
+    count = stats['followers_count'] ?? 0;
+    titleDialog = "Followers";
+    urlEndpoint = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow/followers/";
   }
+
+  return Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))
+      ],
+    ),
+    child: Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          showDialog(
+            context: context,
+            builder: (context) => UserListDialog(
+              title: titleDialog,
+              url: urlEndpoint,
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            children: [
+              Text(
+                "$count",
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
   Widget _buildAboutCard(String role, Map<String, dynamic> profile) {
     return Container(
@@ -408,56 +469,82 @@ Widget _buildHeader(
   }
 
   Widget _buildActionButtons() {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () async {
-              final request = context.read<CookieRequest>();
-              try {
-                // Logout API Call
-                await request.logout("https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/logout/");
-              } catch (e) {
-                debugPrint("Logout Failed: $e");
-              }
-              
-              if (!mounted) return;
+    final user = _profileData!['user'];
+    final bool isMe = user['is_me'];
+    final String role = user['role'];
+    // profile sendiri
+    if (isMe) {
+      return Column(
+        children: [
+          // logout button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                final request = context.read<CookieRequest>();
+                try {
+                  await request.logout("https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/logout/");
+                } catch (e) {
+                  debugPrint("Logout Failed: $e");
+                }
+                if (!mounted) return;
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomePage()),
+                  (r) => false
+                );
+              },
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text("Logout"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: Colors.grey[200],
+                foregroundColor: Colors.black87,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
 
-              Navigator.pushAndRemoveUntil(
-                context, 
-                MaterialPageRoute(builder: (_) => const HomePage()), 
-                (r) => false
-              );
-            },
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text("Logout"),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              backgroundColor: Colors.grey[200],
-              foregroundColor: Colors.black87,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          // delete account
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _showDeleteConfirmDialog, 
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: const Text("Delete Account"),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: Colors.red,
+                side: BorderSide(color: Colors.red.shade100),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: _showDeleteConfirmDialog,
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text("Delete Account"),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              foregroundColor: Colors.red,
-              side: BorderSide(color: Colors.red.shade100),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+        ],
+      );
+    } 
+    
+    // lihat akun organizer
+    else if (role == 'organizer') {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _toggleFollow, 
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            backgroundColor: _isFollowing ? Colors.grey[400] : const Color(0xFFFF7F50),
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
+          child: Text(_isFollowing ? "Unfollow" : "Follow"),
         ),
-      ],
-    );
+      );
+    }
+
+    // lihat profile participant lain
+    return const SizedBox.shrink();
   }
 
   Widget _buildEventSection(String title, List<dynamic> events) {
