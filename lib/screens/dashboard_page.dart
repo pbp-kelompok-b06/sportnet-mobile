@@ -20,10 +20,7 @@ class _DashboardPageState extends State<DashboardPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        duration: const Duration(milliseconds: 1600),
-      ),
+      SnackBar(content: Text(msg), duration: const Duration(milliseconds: 1600)),
     );
   }
 
@@ -58,7 +55,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
     if (prov.errorMessage != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Dashboard")),
+        appBar: AppBar(title: const Text("Dashboard"), centerTitle: true),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -76,14 +73,6 @@ class _DashboardPageState extends State<DashboardPage> {
       appBar: AppBar(
         title: const Text("Dashboard"),
         centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await prov.refreshAll(request);
-            },
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => prov.refreshAll(request),
@@ -91,7 +80,101 @@ class _DashboardPageState extends State<DashboardPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // ===== Pinned Section =====
+            // ===== HEADER =====
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFF6A3A), Color(0xFFF0544F)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Welcome!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Here's a strategic overview of your managed events.",
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ===== STATS =====
+            Row(
+              children: [
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.calendar_month_outlined,
+                    label: "Total Events",
+                    value: prov.totalEvents.toString(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _StatCard(
+                    icon: Icons.groups_outlined,
+                    label: "Total Attendees",
+                    value: prov.totalAttendees.toString(),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // ===== CREATE =====
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _toast("TODO: redirect ke create event form");
+                },
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    "Create New Event",
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryOrange,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 18),
+            const Divider(),
+            const SizedBox(height: 12),
+
+            // ===== PINNED =====
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -129,9 +212,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => EventDetailPage(event: p.event),
-                              ),
+                              MaterialPageRoute(builder: (_) => EventDetailPage(event: p.event)),
                             );
                           },
                           child: AspectRatio(
@@ -140,7 +221,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
 
-                        // pin icon pojok kanan atas (unpin)
+                        // unpin icon top-right
                         Positioned(
                           top: 10,
                           right: 10,
@@ -157,7 +238,7 @@ class _DashboardPageState extends State<DashboardPage> {
                           ),
                         ),
 
-                        // tombol < >
+                        // move < >
                         Positioned(
                           bottom: 10,
                           right: 10,
@@ -193,7 +274,7 @@ class _DashboardPageState extends State<DashboardPage> {
             const Divider(),
             const SizedBox(height: 12),
 
-            // ===== My Events Section =====
+            // ===== MY EVENTS =====
             const Text(
               "My Events",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
@@ -215,7 +296,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 itemBuilder: (context, idx) {
                   final e = prov.myEvents[idx];
-                  final pinned = prov.isPinned(e.id);
+                  final pinned = prov.isPinned(e.id.toString());
 
                   return Stack(
                     children: [
@@ -224,9 +305,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => EventDetailPage(event: e),
-                            ),
+                            MaterialPageRoute(builder: (_) => EventDetailPage(event: e)),
                           );
                         },
                         child: EventCard(event: e),
@@ -244,7 +323,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               size: 20,
                             ),
                             onPressed: () async {
-                              final msg = await prov.togglePin(request, e.id);
+                              final msg = await prov.togglePin(request, e.id.toString());
                               if (msg != null) _toast(msg);
                             },
                           ),
@@ -261,6 +340,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 }
 
+// UI COMPONENTS
 class _MoveBtn extends StatelessWidget {
   final IconData icon;
   final bool disabled;
@@ -287,6 +367,60 @@ class _MoveBtn extends StatelessWidget {
           ),
           child: Icon(icon, size: 22),
         ),
+      ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0544F).withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: const Color(0xFFF0544F)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -16,28 +16,51 @@ class PinnedItem {
   });
 
   factory PinnedItem.fromJson(Map<String, dynamic> json) {
+    final ev = (json['event'] as Map?)?.cast<String, dynamic>() ?? {};
     return PinnedItem(
-      pinId: json["pin_id"].toString(),
-      position: (json["position"] is int)
-          ? json["position"]
-          : int.tryParse(json["position"].toString()) ?? 1,
-      event: Event.fromJson(json["event"] as Map<String, dynamic>),
+      pinId: (json['pin_id'] ?? '').toString(),
+      position: (json['position'] ?? 1) as int,
+      event: Event.fromJson(_normalizeEventJson(ev)),
     );
   }
 }
 
-class DashboardProvider extends ChangeNotifier {
-  static const String baseUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id";
+Map<String, dynamic> _normalizeEventJson(Map<String, dynamic> raw) {
+  return {
+    "id": (raw["id"] ?? "").toString(),
+    "name": raw["name"] ?? "",
+    "thumbnail": raw["thumbnail"],
+    "start_time": raw["start_time"],
+    "end_time": raw["end_time"],
+    "location": raw["location"] ?? "",
+    "address": raw["address"] ?? "",
+    "sports_category": raw["sports_category"] ?? "",
+    "activity_category": raw["activity_category"] ?? "",
+    "fee": raw["fee"],
+    "capacity": raw["capacity"] ?? 0,
+    "attendee_count": raw["attendee_count"] ?? 0,
+  };
+}
 
-  bool isLoading = false;
+// PROVIDER
+class DashboardProvider extends ChangeNotifier {
+  static const String _base = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id";
+
+  bool isLoading = true;
   String? errorMessage;
 
-  List<Event> myEvents = [];
-  List<PinnedItem> pins = [];
   int maxPinned = 3;
+  List<PinnedItem> pins = [];
+  List<Event> myEvents = [];
 
-  Set<String> get pinnedIds => pins.map((p) => p.event.id).toSet();
-  bool isPinned(String eventId) => pinnedIds.contains(eventId);
+  final Set<String> _pinnedIds = {};
+
+  bool isPinned(String eventId) => _pinnedIds.contains(eventId);
+
+  int get totalEvents => myEvents.length;
+
+  int get totalAttendees =>
+      myEvents.fold(0, (sum, e) => sum + e.attendeesCount);
 
   Future<void> refreshAll(CookieRequest request) async {
     isLoading = true;
@@ -46,84 +69,105 @@ class DashboardProvider extends ChangeNotifier {
 
     try {
       await Future.wait([
-        fetchOrganizerEvents(request),
-        fetchPins(request),
+        _fetchPins(request),
+        _fetchMyEvents(request),
       ]);
-    } catch (e) {
-      errorMessage = e.toString();
-    } finally {
+
+      // rebuild pinnedIds
+      _pinnedIds
+        ..clear()
+        ..addAll(pins.map((p) => p.event.id.toString()));
+
       isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      isLoading = false;
+      errorMessage = e.toString();
       notifyListeners();
     }
   }
 
-  Future<void> fetchOrganizerEvents(CookieRequest request) async {
-    final res = await request.get("$baseUrl/dashboard/api/organizer/events/");
-    final raw = (res is Map) ? res["events"] : null;
+  Future<void> _fetchPins(CookieRequest request) async {
+    final res = await request.get("$_base/dashboard/api/pins/");
+    final map = (res is Map) ? res.cast<String, dynamic>() : <String, dynamic>{};
 
-    if (raw is! List) {
-      throw Exception("Unexpected organizer events response: $res");
-    }
+    maxPinned = (map["max_pinned"] ?? 3) as int;
 
-    myEvents = raw
-        .map((e) => Event.fromJson(e as Map<String, dynamic>))
+    final list = (map["pins"] is List) ? (map["pins"] as List) : <dynamic>[];
+    pins = list
+        .whereType<Map>()
+        .map((x) => PinnedItem.fromJson(x.cast<String, dynamic>()))
         .toList();
+
+    pins.sort((a, b) => a.position.compareTo(b.position));
   }
 
-  Future<void> fetchPins(CookieRequest request) async {
-    final res = await request.get("$baseUrl/dashboard/api/pins/");
-    final rawPins = (res is Map) ? res["pins"] : null;
+  Future<void> _fetchMyEvents(CookieRequest request) async {
+    final res = await request.get("$_base/dashboard/get-organizer-events-json/");
+    final map = (res is Map) ? res.cast<String, dynamic>() : <String, dynamic>{};
+    final list = (map["events"] is List) ? (map["events"] as List) : <dynamic>[];
 
-    if (rawPins is! List) {
-      throw Exception("Unexpected pins response: $res");
-    }
+    myEvents = list.whereType<Map>().map((x) {
+      final m = x.cast<String, dynamic>();
 
-    maxPinned = (res["max_pinned"] is int)
-        ? res["max_pinned"]
-        : int.tryParse(res["max_pinned"]?.toString() ?? "") ?? 3;
+      final normalized = _normalizeEventJson({
+        "id": m["id"],
+        "name": m["name"],
+        "thumbnail": m["thumbnail"],
+        "start_time": m["start_time"], 
+        "end_time": m["end_time"],
+        "location": m["location"],
+        "address": m["address"],
+        "sports_category": m["sports_category"],
+        "activity_category": m["activity_category"],
+        "fee": m["fee"],
+        "capacity": m["capacity"],
+        "attendee_count": m["attendee_count"],
+      });
 
-    pins = rawPins
-        .map((p) => PinnedItem.fromJson(p as Map<String, dynamic>))
-        .toList()
-      ..sort((a, b) => a.position.compareTo(b.position));
+      return Event.fromJson(normalized);
+    }).toList();
   }
 
-  /// return null kalau sukses; kalau gagal return message buat SnackBar/toast
   Future<String?> togglePin(CookieRequest request, String eventId) async {
     try {
-      await request.postJson(
-        "$baseUrl/dashboard/api/pins/toggle/$eventId/",
+      final res = await request.postJson(
+        "$_base/dashboard/api/pins/toggle/$eventId/",
         jsonEncode({}),
       );
 
-      await fetchPins(request);
-      notifyListeners();
-      return null;
-    } catch (e) {
-      final msg = e.toString().toLowerCase();
-
-      if (msg.contains("409") || msg.contains("only pin") || msg.contains("you can only pin")) {
-        return "You can only pin $maxPinned events";
+      if (res is Map) {
+        final status = (res["status"] ?? "").toString();
+        if (status == "error" || res["detail"] != null) {
+          return (res["detail"] ?? "Failed to toggle pin.").toString();
+        }
       }
 
+      await refreshAll(request);
+      return null;
+    } catch (e) {
+      final msg = e.toString();
+      if (msg.toLowerCase().contains("409") ||
+          msg.toLowerCase().contains("only pin") ||
+          msg.toLowerCase().contains("pin 3")) {
+        return "You can only pin 3 events";
+      }
       return "Failed to toggle pin";
     }
   }
 
-  /// direction: "left" / "right"
-  Future<String?> movePin(
-    CookieRequest request,
-    String eventId,
-    String direction,
-  ) async {
+  Future<String?> movePin(CookieRequest request, String eventId, String direction) async {
     try {
-      await request.postJson(
-        "$baseUrl/dashboard/api/pins/move/$eventId/",
+      final res = await request.postJson(
+        "$_base/dashboard/api/pins/move/$eventId/",
         jsonEncode({"direction": direction}),
       );
 
-      await fetchPins(request);
-      notifyListeners();
+      if (res is Map && (res["status"] ?? "") == "noop") {
+        return null;
+      }
+
+      await refreshAll(request);
       return null;
     } catch (e) {
       return "Failed to move pin";
