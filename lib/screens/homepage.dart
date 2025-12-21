@@ -10,6 +10,8 @@ import 'package:sportnet/widgets/event_card.dart';
 import 'package:sportnet/models/bookmarks.dart';
 import 'bookmark_page.dart';
 import 'package:sportnet/screens/event_detail_page.dart';
+import '../screens/dashboard_page.dart';
+import '../models/dashboard.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,6 +22,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const Color _primaryOrange = Color(0xFFF0544F);
+  bool _isOrganizer = false;
+  bool _roleLoaded = false;
 
   int _selectedIndex = 0;
   int _unreadCount = 0;
@@ -68,6 +72,42 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadRole() async {
+    try {
+      final request = context.read<CookieRequest>();
+
+      if (!request.loggedIn) {
+        if (!mounted) return;
+        setState(() {
+          _isOrganizer = false;
+          _roleLoaded = true;
+        });
+        return;
+      }
+
+      final res = await request.get(
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/profile/api/',
+      );
+
+      final role = (res is Map && res['user'] is Map)
+          ? (res['user']['role'] ?? '').toString()
+          : '';
+
+      if (!mounted) return;
+      setState(() {
+        _isOrganizer = (role == 'organizer');
+        _roleLoaded = true;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isOrganizer = false;
+        _roleLoaded = true;
+      });
+    }
+  }
+
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +115,7 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshUnreadCount();
       _fetchedEvents();
+      _loadRole();
     });
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
@@ -142,39 +183,64 @@ class _HomePageState extends State<HomePage> {
         create: (_) => BookmarkProvider(),
         child: const BookmarkPage(),
       ),
+    ];
+
+    final List<BottomNavigationBarItem> items = [
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home),
+        label: '',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.bookmark_outline),
+        activeIcon: Icon(Icons.bookmark),
+        label: '',
+      ),
+    ];
+    if (_isOrganizer) {
+      pages.add(
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(),
+          child: const DashboardPage(),
+        ),
+      );
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.assignment_outlined),
+          activeIcon: Icon(Icons.assignment),
+          label: '',
+        ),
+      );
+    }
+    pages.add(
       NotificationsPage(
         onUnreadCountChanged: _handleUnreadCountChanged,
         events: _events,
       ),
-      const ProfilePage(),
-    ];
+    );
+    items.add(
+      BottomNavigationBarItem(
+        icon: _buildNotificationIcon(isActive: false),
+        activeIcon: _buildNotificationIcon(isActive: true),
+        label: '',
+      ),
+    );
+    pages.add(const ProfilePage());
+    items.add(
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person_outline),
+        activeIcon: Icon(Icons.person),
+        label: '',
+      ),
+    );
+    if (_selectedIndex >= pages.length) {
+      _selectedIndex = pages.length - 1;
+    }
 
     return Scaffold(
-      backgroundColor: Colors.white,
       body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
-        items: <BottomNavigationBarItem>[
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: '',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_outline),
-            activeIcon: Icon(Icons.bookmark),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildNotificationIcon(isActive: false),
-            activeIcon: _buildNotificationIcon(isActive: true),
-            label: '',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: '',
-          ),
-        ],
+        items: items,
         currentIndex: _selectedIndex,
         selectedItemColor: _primaryOrange,
         unselectedItemColor: Colors.grey[500],
