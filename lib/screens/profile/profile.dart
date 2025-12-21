@@ -568,19 +568,17 @@ Widget _buildEventSection(String title, List<dynamic> events) {
         else 
           // jika ada event
           SizedBox(
-          height: 220, // Sesuaikan tinggi ini dengan ukuran EventCard kamu
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: events.length,
             physics: const BouncingScrollPhysics(), 
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) {
-              // 1. Ubah data Map dari API menjadi objek Event
               final eventObj = Event.fromJson(events[index]);
 
-              // 2. Gunakan EventCard yang sudah kamu punya
               return Container(
-                width: 280, // Tentukan lebar kartu agar tidak memenuhi layar
+                width: 280, 
                 margin: const EdgeInsets.only(right: 16),
                 child: GestureDetector(
                   onTap: () {
