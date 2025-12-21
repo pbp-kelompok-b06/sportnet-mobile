@@ -24,22 +24,57 @@ class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
   int _unreadCount = 0;
   Timer? _pollingTimer;
-  late final List<Widget> _pages;
+  // late final List<Widget> _pages; // Removed to allow dynamic updates
+  List<Event> _events = [];
+
+  Future<void> _fetchedEvents() async {
+    try {
+      // Mengambil instance CookieRequest dari Provider
+      final request = context.read<CookieRequest>();
+      final response = await request.get(
+        'https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
+      );
+      List<dynamic> data = [];
+
+      // Logika untuk menangani berbagai kemungkinan format JSON
+      if (response is List) {
+        data = response;
+      } else if (response is Map && response.containsKey('events')) {
+        data = response['events'];
+      } else if (response is Map) {
+        throw Exception("Format data tidak dikenali: $response");
+      }
+
+      // Konversi JSON ke List<Event>
+      List<Event> events = [];
+      for (var d in data) {
+        if (d != null) {
+          events.add(Event.fromJson(d));
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _events = events;
+        });
+      }
+    } catch (e) {
+      print('Error fetching events: $e');
+      if (mounted) {
+        setState(() {
+          _events = [];
+        });
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      const HomeContent(),
-      ChangeNotifierProvider(
-        create: (_) => BookmarkProvider(),
-        child: const BookmarkPage(),
-      ),
-      NotificationsPage(onUnreadCountChanged: _handleUnreadCountChanged),
-      const ProfilePage(),
-    ];
+    // _pages initialization removed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshUnreadCount();
+      _fetchedEvents();
     });
 
     _pollingTimer = Timer.periodic(const Duration(seconds: 20), (_) {
@@ -101,9 +136,22 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Widget> pages = [
+      const HomeContent(),
+      ChangeNotifierProvider(
+        create: (_) => BookmarkProvider(),
+        child: const BookmarkPage(),
+      ),
+      NotificationsPage(
+        onUnreadCountChanged: _handleUnreadCountChanged,
+        events: _events,
+      ),
+      const ProfilePage(),
+    ];
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: _pages[_selectedIndex],
+      body: pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: <BottomNavigationBarItem>[
           const BottomNavigationBarItem(
@@ -205,8 +253,6 @@ class _HomeContentState extends State<HomeContent> {
     try {
       // Mengambil instance CookieRequest dari Provider
       final request = context.read<CookieRequest>();
-
-      print(request.loggedIn);
       final response = await request.get(
         'https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
       );
@@ -348,18 +394,17 @@ class _HomeContentState extends State<HomeContent> {
                 ),
                 itemBuilder: (context, index) {
                   return GestureDetector(
-                    behavior: HitTestBehavior.translucent, 
-                     onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EventDetailPage(
-                          event: _filteredEvents[index],
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              EventDetailPage(event: _filteredEvents[index]),
                         ),
-                      ),
-                    );
-                  },
-                  child: EventCard(event: _filteredEvents[index])
+                      );
+                    },
+                    child: EventCard(event: _filteredEvents[index]),
                   );
                 },
               ),
