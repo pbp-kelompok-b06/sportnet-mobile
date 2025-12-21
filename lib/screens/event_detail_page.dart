@@ -179,7 +179,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     setState(() => _isBooking = true);
 
     try {
-      final url = '$_baseUrl/event/${widget.event.id}/join/';
+      final url = '$_baseUrl/event/api/${widget.event.id}/join/'; 
       final response = await request.post(url, {});
 
       final status = (response is Map && response['status'] != null)
