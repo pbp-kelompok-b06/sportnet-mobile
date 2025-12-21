@@ -6,11 +6,14 @@ import '../models/notifications.dart' as model;
 import 'package:provider/provider.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:sportnet/screens/authentication/login_page.dart';
+import 'package:sportnet/models/models.dart';
+import 'package:sportnet/screens/event_detail_page.dart';
 
 class NotificationsPage extends StatefulWidget {
   final ValueChanged<int>? onUnreadCountChanged;
+  final List<Event>? events;
 
-  const NotificationsPage({super.key, this.onUnreadCountChanged});
+  const NotificationsPage({super.key, this.onUnreadCountChanged, this.events});
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
@@ -35,8 +38,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
     try {
       // fetch data notifikasi dari server atau database
       final request = context.read<CookieRequest>();
-      print(request.loggedIn);
-      
       final response = await request.get(
         'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/notification/json/',
       );
@@ -65,6 +66,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
       }
     }
   }
+
+  Event? _findEventById(String eventId) {
+    if (widget.events == null) return null;
+    try {
+      return widget.events!.firstWhere((event) => event.id == eventId);
+    } catch (e) {
+      return null;
+    }
+  }
+
 
   void _notifyUnreadCount() {
     widget.onUnreadCountChanged?.call(
@@ -344,17 +355,42 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            notif.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: !notif.isRead
-                                  ? Colors.black
-                                  : Colors.grey.shade800,
-                            ),
+                          child: GestureDetector(
+                            onTap: () async {
+                              // Coba cari event dari widget.events terlebih dahulu
+                              Event? event = _findEventById(notif.eventId);
+                              
+                              // Jika event ditemukan, navigasi ke detail page
+                              if (event != null && mounted) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => EventDetailPage(
+                                      event: event!,
+                                    ),
+                                  ),
+                                );
+                              } else if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Event tidak ditemukan'),
+                                  ),
+                                );
+                              }
+                            },
+                            child:
+                              Text(
+                                notif.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: !notif.isRead
+                                      ? const Color.fromARGB(255, 84, 138, 255)
+                                      :   const Color.fromARGB(255, 120, 201, 255),
+                                ),
+                              ),
                           ),
                         ),
                         Text(
