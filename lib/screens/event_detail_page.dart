@@ -1,66 +1,429 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:sportnet/models/models.dart';
 import 'package:sportnet/screens/forum/forum_page.dart';
 import 'package:sportnet/screens/review/review_page.dart';
 
-class EventDetailPage extends StatelessWidget {
-  final String eventId;
-  final String eventName;
+class EventDetailPage extends StatefulWidget {
+  final Event event;
 
   const EventDetailPage({
     super.key,
-    required this.eventId,
-    required this.eventName,
+    required this.event,
+  });
+
+  @override
+  State<EventDetailPage> createState() => _EventDetailPageState();
+}
+
+class _EventDetailPageState extends State<EventDetailPage> {
+  static const Color _primaryOrange = Color(0xFFF0544F);
+
+  String _formatFeeCompact(String raw) {
+    final parsed = int.tryParse(raw.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (parsed == null) return raw;
+    // Contoh output: IDR 99K
+    return NumberFormat.compactCurrency(
+      locale: 'id_ID',
+      symbol: 'IDR ',
+      decimalDigits: 0,
+    ).format(parsed);
+  }
+
+  String _formatDate(DateTime dt) {
+    // "25 Nov 2025"
+    return DateFormat('d MMM\nyyyy', 'id_ID').format(dt);
+  }
+
+  String _formatTime(DateTime dt) {
+    // "16:00\nWIB" (timezone WIB dipaksa biar match desain; kalau nanti kamu simpan timezone beneran, bisa diubah)
+    return '${DateFormat('HH:mm', 'id_ID').format(dt)}\nWIB';
+  }
+
+  String _shortLocation(String location, {int max = 10}) {
+    if (location.length <= max) return location;
+    return '${location.substring(0, max)}..';
+  }
+
+  ImageProvider _headerImage() {
+    final url = widget.event.thumbnail.trim();
+    if (url.isEmpty) {
+      return const AssetImage('assets/image/no-image.jpg');
+    }
+    return NetworkImage(url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.event;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Header image
+          Positioned.fill(
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 42,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: _headerImage(),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 58,
+                  child: Container(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+
+          // Back button (overlay)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(14.0),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: _CircleIconButton(
+                  icon: Icons.arrow_back,
+                  onTap: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ),
+
+          // Bottom sheet content
+          Positioned.fill(
+            top: MediaQuery.of(context).size.height * 0.30,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Chips category
+                    Row(
+                      children: [
+                        _ChipTag(text: e.sportsCategory.isEmpty ? 'Category' : e.sportsCategory),
+                        const SizedBox(width: 8),
+                        _ChipTag(text: e.activityCategory.isEmpty ? 'Category' : e.activityCategory),
+                      ],
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Title + fee
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            e.name.isEmpty ? 'Event Name' : e.name,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              height: 1.05,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _formatFeeCompact(e.fee),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // 3 info cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _InfoCard(
+                            title: _formatDate(e.startTime),
+                            // biar mirip desain yang 2 baris
+                            centerText: true,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _InfoCard(
+                            title: _formatTime(e.startTime),
+                            centerText: true,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _InfoCard(
+                            title: '${_shortLocation(e.location, max: 9)}\n${_shortLocation(e.address, max: 9)}',
+                            centerText: true,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Description
+                    Text(
+                      e.description.isEmpty
+                          ? 'Description.'
+                          : e.description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.4,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Book + Bookmark row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // TODO: nanti hubungkan ke endpoint join / booking event
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Book Event tapped (belum dihubungkan ke backend).')),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _primaryOrange,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Book Event',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        _CircleIconButton(
+                          icon: Icons.bookmark_border,
+                          background: Colors.grey[200]!,
+                          onTap: () {
+                            // TODO: nanti bisa pakai BookmarkProvider.toggleBookmark
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Bookmark tapped (belum dihubungkan).')),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    // Forum & Review cards
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _ActionCard(
+                            label: 'Forum',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ForumPage(
+                                    eventId: e.id,
+                                    eventName: e.name,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _ActionCard(
+                            label: 'Review',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ReviewPage(
+                                    eventId: e.id,
+                                    eventName: e.name,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChipTag extends StatelessWidget {
+  final String text;
+  const _ChipTag({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9E2E1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFFB23B37),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  final String title;
+  final bool centerText;
+
+  const _InfoCard({
+    required this.title,
+    this.centerText = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(eventName),
+    return Container(
+      height: 70,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              eventName,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
+      child: Align(
+        alignment: centerText ? Alignment.center : Alignment.centerLeft,
+        child: Text(
+          title,
+          textAlign: centerText ? TextAlign.center : TextAlign.left,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ForumPage(
-                      eventId: eventId,
-                      eventName: eventName,
-                    ),
-                  ),
-                );
-              },
-              child: const Text("Open Forum"),
-            ),
+class _ActionCard extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
 
-            const SizedBox(height: 12),
+  const _ActionCard({
+    required this.label,
+    required this.onTap,
+  });
 
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ReviewPage(
-                      eventId: eventId,
-                      eventName: eventName,
-                    ),
-                  ),
-                );
-              },
-              child: const Text("Open Review"),
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          height: 86,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: Colors.black,
+              ),
             ),
-          ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color background;
+
+  const _CircleIconButton({
+    required this.icon,
+    required this.onTap,
+    this.background = Colors.white,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: background,
+      shape: const CircleBorder(),
+      elevation: 0,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, color: Colors.black),
         ),
       ),
     );
