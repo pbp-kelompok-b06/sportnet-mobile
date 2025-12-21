@@ -346,7 +346,7 @@ class _HomeContentState extends State<HomeContent> {
                   childAspectRatio: 1.5,
                 ),
                 itemBuilder: (context, index) {
-                  return EventCard(event: _filteredEvents[index]);
+                  return GestureDetector(behavior: HitTestBehavior.translucent, child: EventCard(event: _filteredEvents[index]));
                 },
               ),
 
