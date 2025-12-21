@@ -172,3 +172,26 @@ class ReviewItem {
         createdAt: json["created_at"] ?? "",
       );
 }
+
+class OrganizerProfile {
+  final int userId;
+  final String organizerName;
+  final String username;
+  final String? profilePicture;
+
+  OrganizerProfile({
+    required this.userId,
+    required this.organizerName,
+    required this.username,
+    this.profilePicture,
+  });
+
+  factory OrganizerProfile.fromJson(Map<String, dynamic> json) {
+  return OrganizerProfile(
+    userId: int.tryParse("${json['user_id']}") ?? 0,
+    organizerName: json['organizer_name']?.toString() ?? "No Name",
+    username: json['username']?.toString() ?? "",
+    profilePicture: json['profile_picture'], 
+  );
+}
+}
