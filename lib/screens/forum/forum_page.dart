@@ -9,11 +9,7 @@ class ForumPage extends StatefulWidget {
   final String eventId;
   final String eventName;
 
-  const ForumPage({
-    super.key,
-    required this.eventId,
-    required this.eventName,
-  });
+  const ForumPage({super.key, required this.eventId, required this.eventName});
 
   @override
   State<ForumPage> createState() => _ForumPageState();
@@ -47,16 +43,22 @@ class _ForumPageState extends State<ForumPage> {
       final res = await request.get(
         "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/list/${widget.eventId}/",
       );
-      setState(() {
-        _posts = (res["data"] as List).map((post) => ForumPost.fromJson(post)).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _posts = (res["data"] as List)
+              .map((post) => ForumPost.fromJson(post))
+              .toList();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       debugPrint("Forum fetch error: $e");
-      setState(() {
-        _posts = [];
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _posts = [];
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -87,14 +89,118 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   // =========================
+  // EDIT & DELETE
+  // =========================
+  Future<void> _deletePost(int postId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Hapus Komentar"),
+        content: const Text("Apakah Anda yakin ingin menghapus komentar ini?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Batal"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    // Optimistic update: Hapus langsung dari UI sebelum request ke server
+    final previousPosts = List<ForumPost>.from(_posts);
+    setState(() {
+      _posts.removeWhere((p) => p.id == postId);
+    });
+
+    final request = context.read<CookieRequest>();
+    try {
+      final response = await request.post(
+        "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/delete/$postId/",
+        {},
+      );
+      if (response['success'] == true) {
+        // Berhasil, tidak perlu fetch ulang
+      } else {
+        // Gagal, kembalikan state sebelumnya
+        if (mounted) {
+          setState(() {
+            _posts = previousPosts;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? "Gagal menghapus")),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Delete error: $e");
+      // Error, kembalikan state sebelumnya
+      if (mounted) {
+        setState(() {
+          _posts = previousPosts;
+        });
+      }
+    }
+  }
+
+  Future<void> _editPost(ForumPost post) async {
+    final editController = TextEditingController(text: post.message);
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Edit Komentar"),
+        content: TextField(
+          controller: editController,
+          decoration: const InputDecoration(hintText: "Isi komentar baru"),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Batal"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Simpan"),
+          ),
+        ],
+      ),
+    );
+
+    if (save != true || editController.text.trim().isEmpty) return;
+
+    final request = context.read<CookieRequest>();
+    try {
+      final response = await request.post(
+        "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/edit/${post.id}/",
+        {"content": editController.text.trim()},
+      );
+      if (response['success'] == true) {
+        _fetchForum();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? "Gagal mengedit")),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Edit error: $e");
+    }
+  }
+
+  // =========================
   // UI
   // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Forum: ${widget.eventName}"),
-      ),
+      appBar: AppBar(title: Text("Forum: ${widget.eventName}")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -125,26 +231,46 @@ class _ForumPageState extends State<ForumPage> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _posts.isEmpty
-                      ? const Center(child: Text("Belum ada diskusi"))
-                      : ListView.builder(
-                          itemCount: _posts.length,
-                          itemBuilder: (context, index) {
-                            final post = _posts[index];
-                            return Card(
-                              margin:
-                                  const EdgeInsets.symmetric(vertical: 6),
-                              child: ListTile(
-                                title: Text(
-                                  post.author,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
-                                ),
-                                subtitle:
-                                    Text(post.message),
+                  ? const Center(child: Text("Belum ada diskusi"))
+                  : ListView.builder(
+                      itemCount: _posts.length,
+                      itemBuilder: (context, index) {
+                        final post = _posts[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 6),
+                          child: ListTile(
+                            title: Text(
+                              post.author,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                            subtitle: Text(post.message),
+                            trailing: post.isOwner
+                                ? PopupMenuButton<String>(
+                                    onSelected: (value) {
+                                      if (value == 'edit') {
+                                        _editPost(post);
+                                      } else if (value == 'delete') {
+                                        _deletePost(post.id);
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text("Edit"),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text("Delete"),
+                                      ),
+                                    ],
+                                  )
+                                : null,
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
