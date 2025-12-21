@@ -174,7 +174,7 @@ class _DashboardPageState extends State<DashboardPage> {
             const Divider(),
             const SizedBox(height: 12),
 
-            // ===== PINNED =====
+            // ===== Pinned Section =====
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -184,7 +184,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
                 Text(
                   "${prov.pins.length}/${prov.maxPinned}",
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: Colors.grey),
                 ),
               ],
             ),
@@ -193,81 +193,112 @@ class _DashboardPageState extends State<DashboardPage> {
             if (prov.pins.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  "No pinned events yet.",
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                child: Text("No pinned events yet.", style: TextStyle(color: Colors.grey)),
               )
             else
-              Column(
-                children: prov.pins.map((p) {
-                  final isLeftDisabled = p.position <= 1;
-                  final isRightDisabled = p.position >= prov.pins.length;
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  const crossAxisCount = 2;
+                  const spacing = 16.0;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: Stack(
-                      children: [
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => EventDetailPage(event: p.event)),
-                            );
-                          },
-                          child: AspectRatio(
-                            aspectRatio: 1.5,
-                            child: EventCard(event: p.event),
-                          ),
-                        ),
+                  final itemWidth =
+                      (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
 
-                        // unpin icon top-right
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: Material(
-                            color: Colors.white.withOpacity(0.85),
-                            shape: const CircleBorder(),
-                            child: IconButton(
-                              icon: const Icon(Icons.push_pin, size: 20),
-                              onPressed: () async {
-                                final msg = await prov.togglePin(request, p.event.id);
-                                if (msg != null) _toast(msg);
-                              },
+                  final itemHeight = itemWidth / 1.5; // karena childAspectRatio = 1.5
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: prov.pins.map((p) {
+                      final e = p.event;
+                      final key = ValueKey("pin-${e.id}");
+
+                      return DragTarget<String>(
+                        onWillAccept: (draggedId) => draggedId != null && draggedId != e.id,
+                        onAccept: (draggedEventId) async {
+                          // target position = posisi card yang baru
+                          final targetPos = p.position;
+
+                          final msg = await prov.movePinToPosition(
+                            request,
+                            draggedEventId,
+                            targetPos,
+                          );
+                          if (msg != null) _toast(msg);
+                        },
+                        builder: (context, candidateData, rejectedData) {
+                          final isHover = candidateData.isNotEmpty;
+
+                          return LongPressDraggable<String>(
+                            data: e.id,
+                            feedback: Material(
+                              color: Colors.transparent,
+                              child: SizedBox(
+                                width: itemWidth,
+                                height: itemHeight,
+                                child: Opacity(
+                                  opacity: 0.9,
+                                  child: EventCard(event: e),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
+                            childWhenDragging: SizedBox(
+                              width: itemWidth,
+                              height: itemHeight,
+                              child: Opacity(
+                                opacity: 0.35,
+                                child: EventCard(event: e),
+                              ),
+                            ),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              width: itemWidth,
+                              height: itemHeight,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: isHover
+                                    ? Border.all(color: primaryOrange, width: 2)
+                                    : null,
+                              ),
+                              child: Stack(
+                                children: [
+                                  GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => EventDetailPage(event: e),
+                                        ),
+                                      );
+                                    },
+                                    child: EventCard(event: e),
+                                  ),
 
-                        // move < >
-                        Positioned(
-                          bottom: 10,
-                          right: 10,
-                          child: Row(
-                            children: [
-                              _MoveBtn(
-                                icon: Icons.chevron_left,
-                                disabled: isLeftDisabled,
-                                onTap: () async {
-                                  final msg = await prov.movePin(request, p.event.id, "left");
-                                  if (msg != null) _toast(msg);
-                                },
+                                  // unpin (pojok kanan atas)
+                                  Positioned(
+                                    top: 8,
+                                    right: 8,
+                                    child: Material(
+                                      color: Colors.white.withOpacity(0.85),
+                                      shape: const CircleBorder(),
+                                      child: IconButton(
+                                        icon: const Icon(Icons.push_pin, size: 20),
+                                        onPressed: () async {
+                                          final msg = await prov.togglePin(request, e.id);
+                                          if (msg != null) _toast(msg);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 6),
-                              _MoveBtn(
-                                icon: Icons.chevron_right,
-                                disabled: isRightDisabled,
-                                onTap: () async {
-                                  final msg = await prov.movePin(request, p.event.id, "right");
-                                  if (msg != null) _toast(msg);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
                   );
-                }).toList(),
+                },
               ),
 
             const SizedBox(height: 18),
@@ -341,37 +372,6 @@ class _DashboardPageState extends State<DashboardPage> {
 }
 
 // UI COMPONENTS
-class _MoveBtn extends StatelessWidget {
-  final IconData icon;
-  final bool disabled;
-  final VoidCallback onTap;
-
-  const _MoveBtn({
-    required this.icon,
-    required this.disabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: disabled ? 0.35 : 1,
-      child: InkWell(
-        onTap: disabled ? null : onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, size: 22),
-        ),
-      ),
-    );
-  }
-}
-
 class _StatCard extends StatelessWidget {
   final IconData icon;
   final String label;

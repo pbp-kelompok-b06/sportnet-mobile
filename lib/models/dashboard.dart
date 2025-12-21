@@ -6,7 +6,7 @@ import 'package:sportnet/models/models.dart';
 
 class PinnedItem {
   final String pinId;
-  final int position;
+  int position;
   final Event event;
 
   PinnedItem({
@@ -172,5 +172,42 @@ class DashboardProvider extends ChangeNotifier {
     } catch (e) {
       return "Failed to move pin";
     }
+  }
+
+  PinnedItem? _findPin(String eventId) {
+    try {
+      return pins.firstWhere((p) => p.event.id == eventId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> movePinToPosition(
+    CookieRequest req,
+    String eventId,
+    int targetPosition,
+  ) async {
+    final pin = _findPin(eventId);
+    if (pin == null) return "Pin not found";
+
+    targetPosition = targetPosition.clamp(1, pins.length);
+
+    while (pin.position < targetPosition) {
+      final msg = await movePin(req, eventId, "right");
+      if (msg != null) return msg;
+      final updated = _findPin(eventId);
+      if (updated == null) break;
+      pin.position = updated.position;
+    }
+
+    while (pin.position > targetPosition) {
+      final msg = await movePin(req, eventId, "left");
+      if (msg != null) return msg;
+      final updated = _findPin(eventId);
+      if (updated == null) break;
+      pin.position = updated.position;
+    }
+
+    return null;
   }
 }
