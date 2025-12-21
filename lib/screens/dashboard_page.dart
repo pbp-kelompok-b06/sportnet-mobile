@@ -385,29 +385,27 @@ return Stack(
     );
   }
 
-  void _confirmDelete(Event e, CookieRequest request, DashboardProvider prov) {
+void _confirmDelete(Event e, CookieRequest request, DashboardProvider prov) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text("Hapus Event?"),
-      content: Text("Apakah Anda yakin ingin menghapus '${e.name}'?"),
+      title: const Text("Delete Event?"),
+      content: Text("Are you sure you want to delete '${e.name}'?"),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
         TextButton(
           onPressed: () async {
             Navigator.pop(context);
+            // Pakai e.id karena di Django urls.py itu pake UUID
             final response = await request.post(
               "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/delete-flutter/${e.id}/",
               {},
             );
             if (response["status"] == "success") {
-              _toast("Event dihapus");
               prov.refreshAll(request);
-            } else {
-              _toast("Gagal menghapus: ${response["message"]}");
             }
           },
-          child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+          child: const Text("Delete", style: TextStyle(color: Colors.red)),
         ),
       ],
     ),
