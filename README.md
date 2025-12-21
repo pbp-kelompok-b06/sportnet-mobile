@@ -100,7 +100,9 @@ Dengan kemudahan akses dan interaksi yang ditawarkan, SportNet hadir sebagai sol
 Alur pengintegrasian data antara aplikasi dengan aplikasi web (PWS) dilakukan melalui pemanfaatan endpoint pada sistem web yang menerima request body dan mengembalikan response dalam format JSON. Sistem web juga menerapkan mekanisme CORS, manajemen session, serta cookies sehingga aplikasi mobile dapat berkomunikasi secara aman dan mendukung proses autentikasi dari sisi aplikasi eksternal. Aplikasi mobile kemudian mengirim asynchronous request ke sistem web dan menampilkan hasilnya, sekaligus menyimpan informasi autentikasi menggunakan CookieRequest agar user tetap terautentikasi pada halaman yang memerlukannya. Selain itu, Flutter melakukan pemodelan berkala terhadap request dan response JSON yang diterima, sehingga integritas, konsistensi, dan sinkronisasi data antara aplikasi dan PWS tetap terjaga.
 
 ## 🔗 Tautan APK 🔗
-Link APK: -
+[![Build Status](https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea/status.svg?token=4KTjWF7EXjH1Bmu2U9_vrw&branch=master)](https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea)
+
+Link APK: https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea/installable-artifacts/e21e6b5e736ff0b5/public-install-page/eb3f8afd58c936c3c49eb47f0d3ddb46
 
 ## 🎨 Design 🎨
 Designer: Azzahra Anjelika Borselano (2406419663)
