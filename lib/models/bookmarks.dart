@@ -1,26 +1,42 @@
 // lib/models/bookmarks.dart
 import 'package:flutter/foundation.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:sportnet/models/models.dart';
 
 class Bookmark {
   final String eventId;
-  final String eventTitle;
-  final String? eventDate;
+  final Event event;
   String note;
 
   Bookmark({
     required this.eventId,
-    required this.eventTitle,
-    this.eventDate,
+    required this.event,
     this.note = "",
   });
 
   factory Bookmark.fromJson(Map<String, dynamic> json) {
+    final eventId = (json['event_id'] ?? '').toString();
+
+    final event = Event(
+      id: eventId,
+      name: (json['event_name'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(), // default "" kalau backend belum kirim
+      thumbnail: (json['thumbnail'] ?? '').toString(),
+      location: (json['location'] ?? '').toString(),
+      address: (json['address'] ?? '').toString(),
+      startTime: DateTime.tryParse((json['start_time'] ?? '').toString()) ?? DateTime(1970),
+      endTime: DateTime.tryParse((json['end_time'] ?? '').toString()) ?? DateTime(1970),
+      sportsCategory: (json['sports_category'] ?? '').toString(),
+      activityCategory: (json['activity_category'] ?? '').toString(),
+      fee: (json['fee'] ?? '0').toString(),
+      capacity: int.tryParse((json['capacity'] ?? '0').toString()) ?? 0,
+      organizer: (json['organizer'] ?? '').toString(),
+    );
+
     return Bookmark(
-      eventId: json['event_id'] as String,
-      eventTitle: json['event_name'] ?? '',
-      eventDate: json['start_time'],
-      note: json['note'] ?? '',
+      eventId: eventId,
+      event: event,
+      note: (json['note'] ?? '').toString(),
     );
   }
 }
@@ -38,22 +54,10 @@ class BookmarkProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // belum login
-      if (!request.loggedIn) {
-        bookmarks = [];
-        errorMessage = "You are not logged in.";
-        return;
-      }
-
       final response = await request.get('$baseUrl/bookmark/api/bookmarks/');
       final raw = response['bookmarks'];
-      if (raw == null) {
-        errorMessage = "Unexpected response: $response";
-        bookmarks = [];
-        return;
-      }
       if (raw is! List) {
-        errorMessage = "Unexpected bookmarks type: ${raw.runtimeType}";
+        errorMessage = "Unexpected response: $response";
         bookmarks = [];
         return;
       }
@@ -63,6 +67,7 @@ class BookmarkProvider extends ChangeNotifier {
           .toList();
     } catch (e) {
       errorMessage = e.toString();
+      bookmarks = [];
     } finally {
       isLoading = false;
       notifyListeners();
@@ -75,7 +80,7 @@ class BookmarkProvider extends ChangeNotifier {
     String note = "",
   }) async {
     try {
-      final response = await request.postJson(
+      final response = await request.post(
         '$baseUrl/bookmark/api/bookmarks/toggle/$eventId/',
         {'note': note},
       );
@@ -100,7 +105,7 @@ class BookmarkProvider extends ChangeNotifier {
     String note,
   ) async {
     try {
-      await request.postJson(
+      await request.post(
         '$baseUrl/bookmark/api/bookmarks/note/$eventId/',
         {'note': note},
       );
