@@ -1,5 +1,4 @@
 // widgets/user_list.dart
-
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
@@ -7,13 +6,20 @@ import 'package:sportnet/screens/profile/profile.dart';
 
 class UserListDialog extends StatelessWidget {
   final String title;
-  final String url; // URL API
+  final String url;
 
   const UserListDialog({
     super.key, 
     required this.title, 
     required this.url
   });
+
+  // Helper untuk fix URL gambar
+  String _fixImageUrl(String? url) {
+    if (url == null || url.isEmpty) return "";
+    if (url.startsWith("http")) return url;
+    return "https://anya-aleena-sportnet.pbp.cs.ui.ac.id$url";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +30,12 @@ class UserListDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.4,
+          maxHeight: MediaQuery.of(context).size.height * 0.5, 
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -48,6 +55,7 @@ class UserListDialog extends StatelessWidget {
             const Divider(),
             const SizedBox(height: 10),
 
+            // Content List
             Flexible(
               child: FutureBuilder(
                 future: request.get(url), 
@@ -58,16 +66,30 @@ class UserListDialog extends StatelessWidget {
                     return Center(child: Text("Error: ${snapshot.error}"));
                   }
 
+                  print("Data Snapshot: ${snapshot.data}");
+
                   List<dynamic> data = [];
-                  if (snapshot.data != null && snapshot.data['data'] != null) {
-                    data = snapshot.data['data'];
+                  if (snapshot.data != null) {
+                    // Logic aman buat ambil data
+                    if (snapshot.data is Map && snapshot.data['data'] != null) {
+                       data = snapshot.data['data'];
+                    } else if (snapshot.data is List) {
+                       data = snapshot.data;
+                    }
                   }
 
                   if (data.isEmpty) {
                     return Center(
-                      child: Text(
-                        "No $title yet.",
-                        style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_off, size: 40, color: Colors.grey[300]),
+                          const SizedBox(height: 8),
+                          Text(
+                            "No $title yet.",
+                            style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                          ),
+                        ],
                       ),
                     );
                   }
@@ -79,30 +101,45 @@ class UserListDialog extends StatelessWidget {
                     itemBuilder: (context, index) {
                       final item = data[index];
 
-                      String name = item['full_name'] ?? item['organizer_name'] ?? item['name'] ?? "User";
-                      String username = item['username'];
-                      String? photoUrl = item['profile_picture'];
+                      // Fallback nama yang aman
+                      String name = item['full_name'] ?? item['organizer_name'] ?? "User";
+                      String username = item['username'] ?? "";
+                      String rawPhotoUrl = item['profile_picture'] ?? "";
+                      String finalPhotoUrl = _fixImageUrl(rawPhotoUrl);
 
                       return InkWell(
                         onTap: () {
-                          Navigator.pop(context);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProfilePage(username: username),
-                            ),
-                          );
+                          // Tutup dialog dulu, baru pindah
+                          Navigator.pop(context); 
+                          if (username.isNotEmpty) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ProfilePage(username: username),
+                              ),
+                            );
+                          }
                         },
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Colors.grey.shade200,
-                              backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
-                                  ? NetworkImage("https://anya-aleena-sportnet.pbp.cs.ui.ac.id$photoUrl")
-                                  : const AssetImage('assets/image/profile-default.png') as ImageProvider,
+                            // Avatar
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.grey.shade200,
+                                image: DecorationImage(
+                                  fit: BoxFit.cover,
+                                  image: (finalPhotoUrl.isNotEmpty)
+                                      ? NetworkImage(finalPhotoUrl)
+                                      : const AssetImage('assets/image/profile-default.png') as ImageProvider,
+                                ),
+                              ),
                             ),
                             const SizedBox(width: 12),
+                            
+                            // Teks Nama & Username
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,12 +147,14 @@ class UserListDialog extends StatelessWidget {
                                   Text(
                                     name,
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  Text(
-                                    "@$username",
-                                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                  ),
+                                  if (username.isNotEmpty)
+                                    Text(
+                                      "@$username",
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                    ),
                                 ],
                               ),
                             ),

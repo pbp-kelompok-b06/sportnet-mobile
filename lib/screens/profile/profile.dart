@@ -144,7 +144,6 @@ class _ProfilePageState extends State<ProfilePage> {
     final user = _profileData!['user'];
     final profile = _profileData!['profile'];
     final stats = profile['stats'];
-    final isMe = user['is_me'];
     final role = user['role'];
 
     // data text
@@ -191,8 +190,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   ],
                   const SizedBox(height: 40),
                   
-                  // action buttons
-                  if (isMe) _buildActionButtons(),
+                  _buildActionButtons(), 
+                  
                   const SizedBox(height: 24),
                 ],
               ),
@@ -207,9 +206,9 @@ class _ProfilePageState extends State<ProfilePage> {
 Widget _buildHeader(
     String name, String username, String role, String imageUrl) {
     final Color topOrange = const Color(0xFFFFAB91);
-    final Color bottomPeach = const Color(0xFFFFCCBC); 
-    final Color nameColor = const Color(0xFFE64A19); 
-    final Color roleColor = Colors.grey.shade600; 
+    final Color bottomPeach = const Color(0xFFFFCCBC);
+    final Color nameColor = const Color(0xFFE64A19);
+    final Color roleColor = Colors.grey.shade600;
 
     return Column(
       children: [
@@ -232,7 +231,7 @@ Widget _buildHeader(
               ),
             ),
 
-            Positioned(
+             Positioned(
               top: 50, 
               left: 16,
               right: 16,
@@ -249,18 +248,18 @@ Widget _buildHeader(
             ),
 
             Positioned(
-              bottom: -30, 
+              bottom: -30,
               child: Stack(
                 alignment: Alignment.bottomRight,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6), 
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: Colors.black.withOpacity(0.1),
                           blurRadius: 15,
                           spreadRadius: 5,
                           offset: const Offset(0, 5),
@@ -272,18 +271,19 @@ Widget _buildHeader(
                       backgroundColor: Colors.grey.shade200,
                       backgroundImage: imageUrl.isNotEmpty
                           ? NetworkImage(imageUrl)
-                          : const AssetImage('image/profile-default.png')
+                          : const AssetImage('assets/image/profile-default.png')
                               as ImageProvider,
                     ),
-                  ), 
+                  ),
                 ],
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: 40), 
+        const SizedBox(height: 40),
 
+        // Nama User
         Text(
           name,
           style: TextStyle(
@@ -297,7 +297,7 @@ Widget _buildHeader(
 
         const SizedBox(height: 8),
 
-        // Username & Role 
+        // Username & Role
         Text(
           "@$username  •  ${role.toUpperCase()}",
           style: TextStyle(
@@ -306,10 +306,10 @@ Widget _buildHeader(
             fontWeight: FontWeight.w500,
           ),
         ),
+        
+        const SizedBox(height: 20),
 
-        if (widget.username == null) ...[ 
-          const SizedBox(height: 16),
-
+        if (widget.username == null) 
           ElevatedButton.icon(
             onPressed: () async {
               final result = await Navigator.push(
@@ -320,19 +320,34 @@ Widget _buildHeader(
               );
 
               if (result == true) {
-                _fetchProfile(); 
+                _fetchProfile();
               }
             },
             icon: const Icon(Icons.edit, size: 20),
             label: const Text("Edit Profile"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFF7F50), 
+              backgroundColor: const Color(0xFFFF7F50),
               foregroundColor: Colors.white,
               shape: const StadiumBorder(),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
+          )
+        
+        else if (role.toLowerCase() == 'organizer')
+           ElevatedButton(
+            onPressed: _toggleFollow, 
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _isFollowing ? Colors.grey[400] : const Color(0xFFFF7F50),
+              foregroundColor: Colors.white,
+              shape: const StadiumBorder(), 
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              elevation: 4, 
+            ),
+            child: Text(
+              _isFollowing ? "Unfollow" : "Follow",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
-        ],
 
         const SizedBox(height: 24),
       ],
@@ -471,28 +486,13 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
   Widget _buildActionButtons() {
     final user = _profileData!['user'];
     final bool isMe = user['is_me'];
-    final String role = user['role'];
-    // profile sendiri
     if (isMe) {
       return Column(
         children: [
-          // logout button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
-                final request = context.read<CookieRequest>();
-                try {
-                  await request.logout("https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/logout/");
-                } catch (e) {
-                  debugPrint("Logout Failed: $e");
-                }
-                if (!mounted) return;
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => const HomePage()),
-                  (r) => false
-                );
               },
               icon: const Icon(Icons.logout, size: 18),
               label: const Text("Logout"),
@@ -507,11 +507,10 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
           ),
           const SizedBox(height: 12),
 
-          // delete account
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
-              onPressed: _showDeleteConfirmDialog, 
+              onPressed: _showDeleteConfirmDialog,
               icon: const Icon(Icons.delete_outline, size: 18),
               label: const Text("Delete Account"),
               style: OutlinedButton.styleFrom(
@@ -524,26 +523,8 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
           ),
         ],
       );
-    } 
-    
-    // lihat akun organizer
-    else if (role == 'organizer') {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _toggleFollow, 
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            backgroundColor: _isFollowing ? Colors.grey[400] : const Color(0xFFFF7F50),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          child: Text(_isFollowing ? "Unfollow" : "Follow"),
-        ),
-      );
     }
 
-    // lihat profile participant lain
     return const SizedBox.shrink();
   }
 

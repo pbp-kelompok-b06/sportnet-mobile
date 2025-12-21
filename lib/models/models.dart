@@ -44,10 +44,16 @@ class Event {
   String activityCategory;
   String fee;
   int capacity;
-  String organizer;
+  String organizer; 
+  String organizerName;     
+  String organizerPicture;  
+  int attendeesCount;       
+  List<String> attendeeImages; 
+  bool isJoined;            
 
-  // ✅ ALIAS biar kode lama yang pakai event.uuid tetap jalan
   String get uuid => id;
+  int get pk => int.tryParse(id) ?? 0;
+  String get organizerUsername => organizer; 
 
   Event({
     required this.id,
@@ -63,35 +69,63 @@ class Event {
     required this.fee,
     required this.capacity,
     required this.organizer,
+
+    this.organizerName = "",
+    this.organizerPicture = "",
+    this.attendeesCount = 0,
+    this.attendeeImages = const [],
+    this.isJoined = false,
   });
 
-  factory Event.fromJson(Map<String, dynamic> json) => Event(
-        id: json["id"].toString(),
-        name: json["name"] ?? "",
-        description: json["description"] ?? "",
-        thumbnail: json["thumbnail"] ?? "",
-        location: json["location"] ?? "",
-        address: json["address"] ?? "",
-        startTime: DateTime.tryParse(json["start_time"] ?? "") ?? DateTime(1970),
-        endTime: DateTime.tryParse(json["end_time"] ?? "") ?? DateTime(1970),
-        sportsCategory: json["sports_category"] ?? "",
-        activityCategory: json["activity_category"] ?? "",
-        fee: json["fee"]?.toString() ?? "0",
-        capacity: int.tryParse(json["capacity"]?.toString() ?? "0") ?? 0,
-        organizer: json["organizer"] ?? "",
-      );
-}
+  factory Event.fromJson(Map<String, dynamic> json) {
+    String orgUsername = "";
+    String orgName = "Organizer";
+    String orgPic = "";
 
-class Bookmark {
-  final String id;
-  final String eventId;
+    if (json["organizer"] != null) {
+      if (json["organizer"] is Map) {
+        orgUsername = json["organizer"]["username"] ?? "";
+        orgName = json["organizer"]["full_name"] ?? "";
+        orgPic = json["organizer"]["profile_picture"] ?? "";
+      } else {
+        orgUsername = json["organizer"].toString();
+        orgName = json["organizer"].toString(); 
+      }
+    }
+    int attCount = 0;
+    List<String> attAvatars = [];
+    
+    if (json['attendees'] != null && json['attendees'] is Map) {
+      attCount = json['attendees']['count'] ?? 0;
+      if (json['attendees']['avatars'] != null) {
+        attAvatars = List<String>.from(json['attendees']['avatars']);
+      }
+    } else {
+      attCount = int.tryParse(json["attendees_count"]?.toString() ?? "0") ?? 0;
+    }
 
-  Bookmark({required this.id, required this.eventId});
+    return Event(
+      id: json["id"].toString(),
+      name: json["name"] ?? "",
+      description: json["description"] ?? "",
+      thumbnail: json["thumbnail"] ?? "",
+      location: json["location"] ?? "",
+      address: json["address"] ?? "",
+      startTime: DateTime.tryParse(json["start_time"] ?? "") ?? DateTime(1970),
+      endTime: DateTime.tryParse(json["end_time"] ?? "") ?? DateTime(1970),
+      sportsCategory: json["sports_category"] ?? "",
+      activityCategory: json["activity_category"] ?? "",
+      fee: json["fee"]?.toString() ?? "0",
+      capacity: int.tryParse(json["capacity"]?.toString() ?? "0") ?? 0,
 
-  factory Bookmark.fromJson(Map<String, dynamic> json) => Bookmark(
-        id: json["id"].toString(),
-        eventId: json["event_id"].toString(),
-      );
+      organizer: orgUsername, 
+      organizerName: orgName,
+      organizerPicture: orgPic,
+      attendeesCount: attCount,
+      attendeeImages: attAvatars,
+      isJoined: json["is_joined"] ?? false,
+    );
+  }
 }
 
 class ForumPost {
