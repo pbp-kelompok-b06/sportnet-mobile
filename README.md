@@ -102,7 +102,7 @@ Alur pengintegrasian data antara aplikasi dengan aplikasi web (PWS) dilakukan me
 ## 🔗 Tautan APK 🔗
 [![Build Status](https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea/status.svg?token=4KTjWF7EXjH1Bmu2U9_vrw&branch=master)](https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea)
 
-Link APK: https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea/installable-artifacts/e21e6b5e736ff0b5/public-install-page/eb3f8afd58c936c3c49eb47f0d3ddb46
+Link APK: https://app.bitrise.io/app/9b0fd5c9-565b-4a73-9a1c-64e1d90dd0ea/installable-artifacts/cbfe6418a4b41674/public-install-page/7f0e1b654b189fd8e791130a92fdfe3f
 
 ## 🎨 Design 🎨
 Designer: Azzahra Anjelika Borselano (2406419663)
