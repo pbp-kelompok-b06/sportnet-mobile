@@ -5,7 +5,7 @@ name: Release
 on:
   # Triggers the workflow on push events but only for the main branch
   push:
-    branches: [main]
+    branches: [master]
 
 # Permissions needed for creating releases
 permissions:
@@ -35,7 +35,9 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: "3.38.5"
           channel: "stable"
+          cache: true
 
       - name: Get packages
         run: flutter pub get
