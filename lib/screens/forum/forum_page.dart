@@ -41,7 +41,7 @@ class _ForumPageState extends State<ForumPage> {
     CookieRequest request = context.read<CookieRequest>();
     try {
       final res = await request.get(
-        "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/list/${widget.eventId}/",
+        "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/list/${widget.eventId}/",
       );
       if (mounted) {
         setState(() {
@@ -73,7 +73,7 @@ class _ForumPageState extends State<ForumPage> {
 
     try {
       final res = await request.post(
-        "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/add/${widget.eventId}/",
+        "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/add/${widget.eventId}/",
         {"content": _controller.text.trim()},
       );
 

@@ -74,7 +74,7 @@
                   }
                   try {
                     final response = await request.login(
-                      "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/",
+                      "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/login/",
                       {
                         'username': username,
                         'password': password,
