@@ -14,8 +14,8 @@ class ForumPost {
   factory ForumPost.fromJson(Map<String, dynamic> json) {
     return ForumPost(
       id: json['id'],
-      author: json['author'],
-      message: json['message'],
+      author: json['username'],
+      message: json['content'],
       createdAt: DateTime.parse(json['created_at']),
     );
   }

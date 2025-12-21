@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:sportnet/screens/services/api_client.dart';
+import 'package:provider/provider.dart';
+import 'package:pbp_django_auth/pbp_django_auth.dart';
+import 'package:sportnet/models/forum.dart';
 
 class ForumPage extends StatefulWidget {
   final String eventId;
@@ -21,7 +24,7 @@ class _ForumPageState extends State<ForumPage> {
 
   bool _isSending = false;
   bool _isLoading = true;
-  List<dynamic> _posts = [];
+  List<ForumPost> _posts = [];
 
   @override
   void initState() {
@@ -39,13 +42,14 @@ class _ForumPageState extends State<ForumPage> {
   // GET FORUM LIST
   // =========================
   Future<void> _fetchForum() async {
+    CookieRequest request = context.read<CookieRequest>();
     try {
-      final res = await ApiClient.dio.get(
-        "/forum/api/list/${widget.eventId}/",
+      final res = await request.get(
+        "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/list/${widget.eventId}/",
       );
-
+      print("data = ${res}");
       setState(() {
-        _posts = res.data is List ? res.data : [];
+        _posts = (res["data"] as List).map((post) => ForumPost.fromJson(post)).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -61,19 +65,22 @@ class _ForumPageState extends State<ForumPage> {
   // POST FORUM
   // =========================
   Future<void> _sendForum() async {
+    CookieRequest request = context.read<CookieRequest>();
     if (_controller.text.trim().isEmpty) return;
 
     setState(() => _isSending = true);
 
     try {
-      final res = await ApiClient.dio.post(
-        "/forum/api/add/${widget.eventId}/",
-        data: FormData.fromMap({
-          "content": _controller.text.trim(),
-        }),
+      print("Sending forum: ${_controller.text.trim()}");
+      print(request.loggedIn);
+      final res = await request.post(
+        "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/add/${widget.eventId}/",
+        {"content": _controller.text.trim()},
       );
+      
+      print("Forum send response: ${res}");
 
-      if (res.data["success"] == true) {
+      if (res["success"] == true) {
         _controller.clear();
         await _fetchForum();
       }
@@ -133,12 +140,12 @@ class _ForumPageState extends State<ForumPage> {
                                   const EdgeInsets.symmetric(vertical: 6),
                               child: ListTile(
                                 title: Text(
-                                  post["username"] ?? "User",
+                                  post.author,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold),
                                 ),
                                 subtitle:
-                                    Text(post["content"] ?? ""),
+                                    Text(post.message),
                               ),
                             );
                           },

@@ -205,10 +205,10 @@ class _HomeContentState extends State<HomeContent> {
       // Mengambil instance CookieRequest dari Provider
       final request = context.read<CookieRequest>();
 
-      final response = await request.get(
-        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
-      );
       print(request.loggedIn);
+      final response = await request.get(
+        'https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
+      );
       List<dynamic> data = [];
 
       // Logika untuk menangani berbagai kemungkinan format JSON
