@@ -5,6 +5,8 @@ import 'package:sportnet/models/dashboard.dart';
 import 'package:sportnet/widgets/event_card.dart';
 import 'package:sportnet/screens/event_detail_page.dart';
 import 'package:sportnet/screens/authentication/login_page.dart';
+import 'package:sportnet/screens/event_form_page.dart';
+import 'package:sportnet/models/models.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -151,7 +153,12 @@ class _DashboardPageState extends State<DashboardPage> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  _toast("TODO: redirect ke create event form");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EventFormPage(),
+                    ),
+                  );
                 },
                 icon: const Icon(Icons.add_circle_outline),
                 label: const Padding(
@@ -326,42 +333,50 @@ class _DashboardPageState extends State<DashboardPage> {
                   childAspectRatio: 1.5,
                 ),
                 itemBuilder: (context, idx) {
-                  final e = prov.myEvents[idx];
-                  final pinned = prov.isPinned(e.id.toString());
+                  // Di dalam GridView.builder -> itemBuilder:
+final e = prov.myEvents[idx];
+final pinned = prov.isPinned(e.id.toString());
 
-                  return Stack(
-                    children: [
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => EventDetailPage(event: e)),
-                          );
-                        },
-                        child: EventCard(event: e),
-                      ),
-
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: Material(
-                          color: Colors.white.withOpacity(0.85),
-                          shape: const CircleBorder(),
-                          child: IconButton(
-                            icon: Icon(
-                              pinned ? Icons.push_pin : Icons.push_pin_outlined,
-                              size: 20,
-                            ),
-                            onPressed: () async {
-                              final msg = await prov.togglePin(request, e.id.toString());
-                              if (msg != null) _toast(msg);
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
+return Stack(
+  children: [
+    GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => EventDetailPage(event: e)),
+      ),
+      child: EventCard(event: e),
+    ),
+    
+    // Tombol Actions di pojok kanan atas
+    Positioned(
+      top: 5,
+      right: 5,
+      child: Row(
+        children: [
+          // Tombol EDIT
+          _CircleActionBtn(
+            icon: Icons.edit,
+            color: Colors.blue,
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => EventFormPage(event: e)),
+              );
+              if (mounted) prov.refreshAll(request); // Refresh data setelah balik
+            },
+          ),
+          const SizedBox(width: 4),
+          // Tombol DELETE
+          _CircleActionBtn(
+            icon: Icons.delete_forever,
+            color: Colors.red,
+            onTap: () => _confirmDelete(e, request, prov),
+          ),
+        ],
+      ),
+    ),
+  ],
+);
                 },
               ),
           ],
@@ -369,7 +384,37 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
+  void _confirmDelete(Event e, CookieRequest request, DashboardProvider prov) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text("Hapus Event?"),
+      content: Text("Apakah Anda yakin ingin menghapus '${e.name}'?"),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+        TextButton(
+          onPressed: () async {
+            Navigator.pop(context);
+            final response = await request.post(
+              "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/delete-flutter/${e.id}/",
+              {},
+            );
+            if (response["status"] == "success") {
+              _toast("Event dihapus");
+              prov.refreshAll(request);
+            } else {
+              _toast("Gagal menghapus: ${response["message"]}");
+            }
+          },
+          child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
 }
+}
+
 
 // UI COMPONENTS
 class _StatCard extends StatelessWidget {
@@ -421,6 +466,31 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CircleActionBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _CircleActionBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withOpacity(0.9),
+      shape: const CircleBorder(),
+      elevation: 2,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: Icon(icon, size: 18, color: color),
+        ),
       ),
     );
   }
