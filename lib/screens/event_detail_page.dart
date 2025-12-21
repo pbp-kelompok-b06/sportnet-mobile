@@ -17,7 +17,7 @@ class EventDetailPage extends StatefulWidget {
 }
 
 class _EventDetailPageState extends State<EventDetailPage> {
-  static const Color _primaryOrange = Color(0xFFF0544F);
+  static const Color _primaryOrange = Color(0xfffe4e11);
 
   String _formatFeeCompact(String raw) {
     final parsed = int.tryParse(raw.replaceAll(RegExp(r'[^0-9]'), ''));
@@ -32,12 +32,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   String _formatDate(DateTime dt) {
     // "25 Nov 2025"
-    return DateFormat('d MMM\nyyyy', 'id_ID').format(dt);
+    return DateFormat('d MMM yyy', 'id_ID').format(dt);
   }
 
   String _formatTime(DateTime dt) {
     // "16:00\nWIB" (timezone WIB dipaksa biar match desain; kalau nanti kamu simpan timezone beneran, bisa diubah)
-    return '${DateFormat('HH:mm', 'id_ID').format(dt)}\nWIB';
+    return '${DateFormat('HH:mm', 'id_ID').format(dt)} WIB';
+  }
+  DateTime _toWib(DateTime dt) {
+ 
+    if (dt.isUtc) return dt.add(const Duration(hours: 7));
+    return dt.toUtc().add(const Duration(hours: 7));
+  }
+
+  String _formatTimeRangeWib(DateTime start, DateTime end) {
+    final s = _toWib(start);
+    final e = _toWib(end);
+    final startStr = DateFormat('HH:mm').format(s);
+    final endStr = DateFormat('HH:mm').format(e);
+    return '$startStr - $endStr\nWIB';
   }
 
   String _shortLocation(String location, {int max = 10}) {
@@ -45,17 +58,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return '${location.substring(0, max)}..';
   }
 
-  ImageProvider _headerImage() {
-    final url = widget.event.thumbnail.trim();
-    if (url.isEmpty) {
-      return const AssetImage('assets/image/no-image.jpg');
+  String _proxyImageUrl(String thumbnail) {
+    String url = thumbnail.trim();
+    if (url.isEmpty) return '';
+
+    if (!url.startsWith('http')) {
+      url = 'https://anya-aleena-sportnet.pbp.cs.ui.ac.id$url';
     }
-    return NetworkImage(url);
+
+    return 'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/proxy-image/?url=${Uri.encodeComponent(url)}';
   }
 
   @override
   Widget build(BuildContext context) {
     final e = widget.event;
+    final headerUrl = _proxyImageUrl(widget.event.thumbnail);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -67,12 +84,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
               children: [
                 Expanded(
                   flex: 42,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: _headerImage(),
-                        fit: BoxFit.cover,
-                      ),
+                  child: SizedBox(
+                    height: 300,
+                    width: double.infinity,
+                    child: Image.network(
+                      headerUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/image/no-image.jpg',
+                          fit: BoxFit.cover,
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -164,16 +187,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _InfoCard(
-                            title: _formatTime(e.startTime),
+                            title: _formatTimeRangeWib(e.startTime, e.endTime),
                             centerText: true,
                           ),
+
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: _InfoCard(
-                            title: '${_shortLocation(e.location, max: 9)}\n${_shortLocation(e.address, max: 9)}',
+                            location: e.location,
+                            address: e.address,
                             centerText: true,
                           ),
+
                         ),
                       ],
                     ),
@@ -182,9 +208,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
                     // Description
                     Text(
-                      e.description.isEmpty
-                          ? 'Description.'
-                          : e.description,
+                      e.description.isEmpty ? 'Description.' : e.description,
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.4,
@@ -315,11 +339,15 @@ class _ChipTag extends StatelessWidget {
 }
 
 class _InfoCard extends StatelessWidget {
-  final String title;
+  final String? title;
+  final String? location;
+  final String? address;
   final bool centerText;
 
   const _InfoCard({
-    required this.title,
+    this.title,
+    this.location,
+    this.address,
     this.centerText = false,
   });
 
@@ -341,19 +369,56 @@ class _InfoCard extends StatelessWidget {
       ),
       child: Align(
         alignment: centerText ? Alignment.center : Alignment.centerLeft,
-        child: Text(
-          title,
-          textAlign: centerText ? TextAlign.center : TextAlign.left,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            height: 1.1,
-          ),
+        child: _buildContent(),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    // CASE 1: Card biasa (date / time)
+    if (location == null || address == null) {
+      return Text(
+        title ?? '',
+        textAlign: centerText ? TextAlign.center : TextAlign.left,
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
+          height: 1.1,
         ),
+      );
+    }
+
+    // CASE 2: Location card (location + address)
+    return RichText(
+      textAlign: TextAlign.center,
+      maxLines: 3,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: '$location\n',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: Colors.black,
+              height: 1.1,
+            ),
+          ),
+          TextSpan(
+            text: address,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[700],
+              height: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
 
 class _ActionCard extends StatelessWidget {
   final String label;

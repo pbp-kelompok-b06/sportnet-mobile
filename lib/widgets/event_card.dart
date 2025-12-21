@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:sportnet/models/models.dart';
 
-
 class EventCard extends StatelessWidget {
   final Event event;
   const EventCard({super.key, required this.event});
@@ -23,7 +22,9 @@ class EventCard extends StatelessWidget {
       thumbnailUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id$thumbnailUrl";
     }
 
-    final String dateAndPlace = '${_formatDate(event.startTime)} - ${event.location}';
+    final String dateAndPlace =
+        '${_formatDate(event.startTime)} - ${event.location}';
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16.0),
       child: Container(
@@ -42,26 +43,29 @@ class EventCard extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.network(
-              'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/proxy-image/?url=${Uri.encodeComponent(event.thumbnail)}',
+              'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/proxy-image/?url=${Uri.encodeComponent(thumbnailUrl)}',
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   color: Colors.grey.shade800,
-                  child: const Center(child: Icon(Icons.broken_image, color: Colors.white)),
+                  child: const Center(
+                    child: Icon(Icons.broken_image, color: Colors.white),
+                  ),
                 );
               },
             ),
-           Container(
+            Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  // stops mengontrol di mana warna berubah. 
+                  // stops mengontrol di mana warna berubah.
                   // 0.3 artinya sampai 30% dari atas masih transparan.
-                  stops: const [0.3, 1.0], 
+                  stops: const [0.3, 1.0],
                   colors: [
                     Colors.transparent, // Bagian atas transparan
-                    const Color(0xFFFE4E11).withOpacity(0.9), // Bagian bawah orange kuat
+                    const Color(0xFFFE4E11)
+                        .withOpacity(0.9), // Bagian bawah orange kuat
                   ],
                 ),
               ),
@@ -73,10 +77,18 @@ class EventCard extends StatelessWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.start,
-                    spacing: 5,
                     children: [
-                      _buildPill(event.sportsCategory, const Color(0xFFFFE6D4), textColor: const Color(0xFF7E1B10)),
-                      _buildPill(event.activityCategory, const Color(0xFFFFE6D4), textColor: const Color(0xFF7E1B10)),
+                      _buildPill(
+                        event.sportsCategory,
+                        const Color(0xFFFFE6D4),
+                        textColor: const Color(0xFF7E1B10),
+                      ),
+                      const SizedBox(width: 5),
+                      _buildPill(
+                        event.activityCategory,
+                        const Color(0xFFFFE6D4),
+                        textColor: const Color(0xFF7E1B10),
+                      ),
                     ],
                   ),
                   const Spacer(),
@@ -112,7 +124,15 @@ class EventCard extends StatelessWidget {
                         ),
                       ),
                       if (_isFree)
-                        _buildPill('Free', Colors.white.withOpacity(0.9), textColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                        _buildPill(
+                          'Free',
+                          Colors.white.withOpacity(0.9),
+                          textColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                        ),
                     ],
                   ),
                 ],
@@ -124,7 +144,8 @@ class EventCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPill(String text, Color backgroundColor, {Color textColor = Colors.white, EdgeInsets? padding}) {
+  Widget _buildPill(String text, Color backgroundColor,
+      {Color textColor = Colors.white, EdgeInsets? padding}) {
     return Container(
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
