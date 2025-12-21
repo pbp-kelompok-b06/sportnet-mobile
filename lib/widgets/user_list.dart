@@ -2,15 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:pbp_django_auth/pbp_django_auth.dart';
 import 'package:provider/provider.dart';
-import 'package:sportnet/screens/profile/profile.dart'; 
+import 'package:sportnet/screens/profile/profile.dart';
 
 class UserListDialog extends StatelessWidget {
   final String title;
   final String url;
 
   const UserListDialog({
-    super.key, 
-    required this.title, 
+    super.key,
+    required this.title,
     required this.url
   });
 
@@ -30,7 +30,7 @@ class UserListDialog extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.5, 
+          maxHeight: MediaQuery.of(context).size.height * 0.5,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -58,7 +58,7 @@ class UserListDialog extends StatelessWidget {
             // Content List
             Flexible(
               child: FutureBuilder(
-                future: request.get(url), 
+                future: request.get(url),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -66,19 +66,26 @@ class UserListDialog extends StatelessWidget {
                     return Center(child: Text("Error: ${snapshot.error}"));
                   }
 
-                  print("Data Snapshot: ${snapshot.data}");
+                  List<Map<String, dynamic>> profiles = [];
 
-                  List<dynamic> data = [];
                   if (snapshot.data != null) {
-                    // Logic aman buat ambil data
-                    if (snapshot.data is Map && snapshot.data['data'] != null) {
-                       data = snapshot.data['data'];
-                    } else if (snapshot.data is List) {
-                       data = snapshot.data;
+                    var rawData = snapshot.data;
+                    List<dynamic> listData = [];
+
+                    if (rawData is Map && rawData['data'] != null) {
+                      listData = rawData['data'];
+                    } else if (rawData is List) {
+                      listData = rawData;
+                    }
+
+                    for (var item in listData) {
+                      if (item != null && item is Map<String, dynamic>) {
+                        profiles.add(item);
+                      }
                     }
                   }
 
-                  if (data.isEmpty) {
+                  if (profiles.isEmpty) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -96,21 +103,19 @@ class UserListDialog extends StatelessWidget {
 
                   return ListView.separated(
                     shrinkWrap: true,
-                    itemCount: data.length,
+                    itemCount: profiles.length,
                     separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      final item = data[index];
-
-                      // Fallback nama yang aman
-                      String name = item['full_name'] ?? item['organizer_name'] ?? "User";
-                      String username = item['username'] ?? "";
-                      String rawPhotoUrl = item['profile_picture'] ?? "";
-                      String finalPhotoUrl = _fixImageUrl(rawPhotoUrl);
+                      final profile = profiles[index]; 
+                      String displayName = profile['full_name'] ?? profile['organizer_name'] ?? "No Name";
+                      String username = profile['username'] ?? "";
+                      String profilePicture = profile['profile_picture'] ?? "";
+                      
+                      String finalPhotoUrl = _fixImageUrl(profilePicture);
 
                       return InkWell(
                         onTap: () {
-                          // Tutup dialog dulu, baru pindah
-                          Navigator.pop(context); 
+                          Navigator.pop(context);
                           if (username.isNotEmpty) {
                             Navigator.push(
                               context,
@@ -138,14 +143,13 @@ class UserListDialog extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 12),
-                            
-                            // Teks Nama & Username
+
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    name,
+                                    displayName,
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

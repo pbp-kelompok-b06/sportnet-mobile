@@ -147,10 +147,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final role = user['role'];
 
     // data text
-    String name = role == 'participant' 
-        ? (profile['full_name'] ?? "No Name") 
-        : (profile['organizer_name'] ?? "No Name");
-
+    String name = profile['full_name'] ?? profile['organizer_name'] ?? "No Name";
     String image = profile['profile_picture'] ?? ""; // url gambar
 
     // Handling gambar URL
@@ -361,17 +358,21 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
   int count;
   String titleDialog;
   String urlEndpoint;
+  String currentProfileUsername = widget.username ?? _profileData!['user']['username'];
+  String baseUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow";
 
   if (role == 'participant') {
     label = "Following";
     count = stats['following_count'] ?? 0;
-    titleDialog = "Following";
-    urlEndpoint = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow/following/";
-  } else {
+    titleDialog = "Following List";
+    urlEndpoint = "$baseUrl/participant/$currentProfileUsername/following/";
+
+  } else { 
+    // Role == Organizer
     label = "Followers";
     count = stats['followers_count'] ?? 0;
-    titleDialog = "Followers";
-    urlEndpoint = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id/follow/followers/";
+    titleDialog = "Followers List";
+    urlEndpoint = "$baseUrl/organizer/$currentProfileUsername/followers/";
   }
 
   return Container(
