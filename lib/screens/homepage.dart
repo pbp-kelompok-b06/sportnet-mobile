@@ -9,6 +9,7 @@ import 'profile/profile.dart';
 import 'package:sportnet/widgets/event_card.dart';
 import 'package:sportnet/models/bookmarks.dart';
 import 'bookmark_page.dart';
+import 'package:sportnet/screens/event_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -346,7 +347,20 @@ class _HomeContentState extends State<HomeContent> {
                   childAspectRatio: 1.5,
                 ),
                 itemBuilder: (context, index) {
-                  return GestureDetector(behavior: HitTestBehavior.translucent, child: EventCard(event: _filteredEvents[index]));
+                  return GestureDetector(
+                    behavior: HitTestBehavior.translucent, 
+                     onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EventDetailPage(
+                          event: _filteredEvents[index],
+                        ),
+                      ),
+                    );
+                  },
+                  child: EventCard(event: _filteredEvents[index])
+                  );
                 },
               ),
 
