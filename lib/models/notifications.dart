@@ -27,7 +27,7 @@ class Notification {
         message: json["message"],
         isRead: json["is_read"],
         timestamp: DateTime.parse(json["timestamp"]),
-        eventId: json["event_id"],
+        eventId: json["event_id"]?? "",
     );
 
     Map<String, dynamic> toJson() => {

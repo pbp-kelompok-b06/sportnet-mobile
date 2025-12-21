@@ -47,7 +47,6 @@ class _ForumPageState extends State<ForumPage> {
       final res = await request.get(
         "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/list/${widget.eventId}/",
       );
-      print("data = ${res}");
       setState(() {
         _posts = (res["data"] as List).map((post) => ForumPost.fromJson(post)).toList();
         _isLoading = false;
@@ -71,14 +70,10 @@ class _ForumPageState extends State<ForumPage> {
     setState(() => _isSending = true);
 
     try {
-      print("Sending forum: ${_controller.text.trim()}");
-      print(request.loggedIn);
       final res = await request.post(
         "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/forum/api/add/${widget.eventId}/",
         {"content": _controller.text.trim()},
       );
-      
-      print("Forum send response: ${res}");
 
       if (res["success"] == true) {
         _controller.clear();
