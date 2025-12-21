@@ -283,13 +283,13 @@ class _DashboardPageState extends State<DashboardPage> {
 
                                   // unpin (pojok kanan atas)
                                   Positioned(
-                                    top: 8,
-                                    right: 8,
+                                    top: 5,
+                                    right: 5,
                                     child: Material(
                                       color: Colors.white.withOpacity(0.85),
                                       shape: const CircleBorder(),
                                       child: IconButton(
-                                        icon: const Icon(Icons.push_pin, size: 20),
+                                        icon: const Icon(Icons.push_pin, size: 15),
                                         onPressed: () async {
                                           final msg = await prov.togglePin(request, e.id);
                                           if (msg != null) _toast(msg);
@@ -353,7 +353,18 @@ return Stack(
       right: 5,
       child: Row(
         children: [
-          // Tombol EDIT
+          // PIN / UNPIN
+          _CircleActionBtn(
+            icon: pinned ? Icons.push_pin : Icons.push_pin_outlined,
+            color: primaryOrange,
+            onTap: () async {
+              final msg = await prov.togglePin(request, e.id.toString());
+              if (msg != null) _toast(msg);
+            },
+          ),
+          const SizedBox(width: 4),
+
+          // EDIT
           _CircleActionBtn(
             icon: Icons.edit,
             color: Colors.blue,
