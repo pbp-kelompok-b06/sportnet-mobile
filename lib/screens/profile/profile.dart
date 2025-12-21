@@ -497,6 +497,31 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
+                final request = context.read<CookieRequest>();
+                
+                final response = await request.logout(
+                    "https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/authenticate/api/logout/"
+                );
+
+                if (!mounted) return;
+
+                if (response['status']) {
+                  String message = response['message'];
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(message)),
+                  );
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomePage()),
+                    (route) => false,
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(response['message'])),
+                  );
+                }
               },
               icon: const Icon(Icons.logout, size: 18),
               label: const Text("Logout"),
