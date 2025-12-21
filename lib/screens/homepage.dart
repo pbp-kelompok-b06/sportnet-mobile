@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
       // Mengambil instance CookieRequest dari Provider
       final request = context.read<CookieRequest>();
       final response = await request.get(
-        'https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
       );
       List<dynamic> data = [];
 
@@ -324,7 +324,7 @@ class _HomeContentState extends State<HomeContent> {
       // Mengambil instance CookieRequest dari Provider
       final request = context.read<CookieRequest>();
       final response = await request.get(
-        'https:/anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
+        'https://anya-aleena-sportnet.pbp.cs.ui.ac.id/event/json/',
       );
       List<dynamic> data = [];
 
