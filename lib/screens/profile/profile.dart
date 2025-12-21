@@ -6,6 +6,9 @@ import 'package:sportnet/screens/authentication/login_page.dart';
 import 'package:sportnet/screens/profile/edit_profile.dart';
 import 'package:sportnet/widgets/user_list.dart';
 import 'package:intl/intl.dart';
+import 'package:sportnet/screens/event_detail_page.dart';
+import 'package:sportnet/models/models.dart';
+import 'package:sportnet/widgets/event_card.dart';
 
 
 class ProfilePage extends StatefulWidget {
@@ -529,7 +532,7 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
     return const SizedBox.shrink();
   }
 
-  Widget _buildEventSection(String title, List<dynamic> events) {
+Widget _buildEventSection(String title, List<dynamic> events) {
     final Color primaryOrange = const Color(0xFFFF7F50);
 
     return Column(
@@ -565,92 +568,38 @@ Widget _buildStatsCard(String role, Map<String, dynamic> stats) {
         else 
           // jika ada event
           SizedBox(
-            height: 220,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: events.length,
-              physics: const BouncingScrollPhysics(), 
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, index) {
-                final event = events[index];
+          height: 220, // Sesuaikan tinggi ini dengan ukuran EventCard kamu
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: events.length,
+            physics: const BouncingScrollPhysics(), 
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemBuilder: (context, index) {
+              // 1. Ubah data Map dari API menjadi objek Event
+              final eventObj = Event.fromJson(events[index]);
 
-                // image logic
-                String? thumbnailUrl = event['thumbnail'];
-                Widget imageWidget;
-
-                if (thumbnailUrl != null && thumbnailUrl.isNotEmpty) {
-                  if (!thumbnailUrl.startsWith('http')) {
-                    thumbnailUrl = "https://anya-aleena-sportnet.pbp.cs.ui.ac.id$thumbnailUrl"; 
-                  }
-                  
-                  imageWidget = Image.network(
-                    thumbnailUrl,
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, _) => Image.asset(
-                      'assets/image/no-image.jpg', 
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                    ),
-                  );
-                } else {
-                  imageWidget = Image.asset(
-                    'assets/image/no-image.jpg', 
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  );
-                }
-
-                // return widget card
-                return Container(
-                  width: 280, 
-                  margin: const EdgeInsets.only(right: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 5, offset: const Offset(0, 2))],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                        child: imageWidget, 
+              // 2. Gunakan EventCard yang sudah kamu punya
+              return Container(
+                width: 280, // Tentukan lebar kartu agar tidak memenuhi layar
+                margin: const EdgeInsets.only(right: 16),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventDetailPage(event: eventObj),
                       ),
-                      
-                      // Info Judul & Waktu
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              event['name'], 
-                              maxLines: 1, 
-                              overflow: TextOverflow.ellipsis, 
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              event['start_time'], 
-                              style: TextStyle(color: Colors.grey[500], fontSize: 12)
-                            ),
-                          ],
-                        ),
-                      )
-                    ],
-                  ),
-                );
-              },
-            ),
+                    );
+                  },
+                  child: EventCard(event: eventObj),
+                ),
+              );
+            },
           ),
-      ],
-    );
-  }
+        ),
+    ],
+  );
+}
 
   void _showDeleteConfirmDialog() {
     showDialog(
