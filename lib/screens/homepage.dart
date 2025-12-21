@@ -312,6 +312,10 @@ class _HomeContentState extends State<HomeContent> {
     // Menggunakan addPostFrameCallback untuk memastikan context siap sebelum memanggil Provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchEvents();
+      final req = context.read<CookieRequest>();
+      if (req.loggedIn) {
+        context.read<BookmarkProvider>().loadBookmarks(req);
+      }
     });
   }
 

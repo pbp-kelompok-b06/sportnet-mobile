@@ -8,6 +8,7 @@ import 'package:sportnet/screens/forum/forum_page.dart';
 import 'package:sportnet/screens/review/review_page.dart';
 import 'package:sportnet/screens/profile/profile.dart';
 import 'package:sportnet/widgets/user_list.dart';
+import 'package:sportnet/models/bookmarks.dart';
 
 class EventDetailPage extends StatefulWidget {
   final Event event;
@@ -456,12 +457,37 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
         ),
         const SizedBox(width: 14),
-        _CircleIconButton(
-          icon: Icons.bookmark_border,
-          background: Colors.grey[200]!,
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Bookmark tapped (Feature coming soon).')),
+        Builder(
+          builder: (context) {
+            final request = context.read<CookieRequest>();
+            final prov = context.watch<BookmarkProvider>();
+
+            final eventId = widget.event.id.toString();
+            final isBookmarked = prov.bookmarks.any((b) => b.eventId.toString() == eventId);
+
+            return _CircleIconButton(
+              icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+              background: Colors.grey[200]!,
+              onTap: () async {
+                await prov.toggleBookmark(request, eventId);
+
+                if (!context.mounted) return;
+
+                if (prov.errorMessage != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Failed: ${prov.errorMessage}")),
+                  );
+                  prov.errorMessage = null;
+                  return;
+                }
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(isBookmarked ? "Bookmark removed" : "Bookmarked"),
+                    duration: const Duration(milliseconds: 900),
+                  ),
+                );
+              },
             );
           },
         ),

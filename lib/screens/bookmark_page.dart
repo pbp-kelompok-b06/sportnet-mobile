@@ -29,6 +29,7 @@ class _BookmarkPageState extends State<BookmarkPage> {
   Widget build(BuildContext context) {
     final provider = context.watch<BookmarkProvider>();
     final request = context.watch<CookieRequest>();
+    final bookmarks = provider.bookmarks;
     const Color primaryOrange = Color(0xFFF0544F);
 
     if (!request.loggedIn) {
@@ -117,13 +118,17 @@ class _BookmarkPageState extends State<BookmarkPage> {
               children: [
                 GestureDetector(
                   behavior: HitTestBehavior.translucent,
-                  onTap: () {
-                    Navigator.push(
+                  onTap: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => EventDetailPage(event: b.event),
                       ),
                     );
+
+                    // refresh bookmarks
+                    final request = context.read<CookieRequest>();
+                    await context.read<BookmarkProvider>().loadBookmarks(request);
                   },
                   child: SizedBox(
                     height: 170,
