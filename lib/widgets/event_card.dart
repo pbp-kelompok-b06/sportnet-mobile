@@ -6,8 +6,13 @@ class EventCard extends StatelessWidget {
   final Event event;
   const EventCard({super.key, required this.event});
 
+DateTime _toWib(DateTime dt) {
+    return dt.add(const Duration(hours: 7));
+  }
+
   String _formatDate(DateTime date) {
-    return DateFormat('dd MMM yyyy').format(date);
+    // Gunakan _toWib sebelum di-format
+    return DateFormat('dd MMM yyyy').format(_toWib(date));
   }
 
   bool get _isFree {
